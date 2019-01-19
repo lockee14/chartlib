@@ -14,9 +14,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <link rel="stylesheet" type="text/css" href="debugcss.css">
-  <!--<script type="module" src="setSpace.js"></script>-->
   <script type="text/javascript" src="./bundle.js"></script>
-  <!-- inclure la feuille de style css -->
 </head>
 <body>
     <header>
@@ -44,10 +42,6 @@
                     <input type="text">
                 </div>
         
-                <!-- <option (value)="saab">Saab</option> -->
-                <!-- <option (value)="opel">Opel</option> -->
-                <!-- <option (value)="audi">Audi</option> -->
-        
                 <li>
                     xxxx
                 </li>
@@ -56,7 +50,10 @@
         
         
             <div>
-                <div id="supercontenaire"></div>
+                <div id="supercontenaire">
+                    <img id=wheelimg src=./icons8-settings-filled-50.png></img>
+                    <canvas id="canvas"></canvas>
+                </div>
                 <div id="cursorDebug"></div>
                 <div id="mouseDownDebug"></div>
             </div>
