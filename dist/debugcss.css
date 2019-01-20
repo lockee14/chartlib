@@ -118,6 +118,12 @@ div {
   margin: 0px;
 }
 
-#canvas {
+.canvas {
   width:100%
+}
+
+#cursor_canvas {
+  position: absolute;
+  left: 0px;
+  top: 0px;
 }

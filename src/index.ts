@@ -44,19 +44,33 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
 //      2 canvas cursor on top of the complex one
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Touch for mobile touch and drag
+
+// 2 solution pour le deplacement du curseur:
+//      -sauvegarder la dernier frame et ne mettre à jour que le necessaire, oui mais comment?
+//      -superposer 2 element canvas (ou plus) et afficher les chart dans l'un le curseur dans l'autre
+const textSpace: number = 0.03;
+const mainSpace: number = 0.85;
+const restSpace: number = 0.12;
 class main {
-    userInput: any; // useless?
+    // userInput: any; // useless?
+    cookieObj: any;
     dataLength: number;
     width: number;
     height: number;
     baseInterval: number;
-    ctx: any;
+    main_ctx: any;
+    cursor_ctx: any;
     lastFrame: any;
+    zoom: number = 1;
+    click: boolean = false;
+    pan: number = 0;
+    offset: number = 0;
     // currentAbscisse: number = 0;
     // nextAbscisse: number = 0;
     constructor() {}
     initialisation(data: any) {
         this.dataLength = data.length;
+        this.cookieObj = this.parseCookie();
         this.setSpace();
         console.log(data);
         // let width,height,baseInterval,dataLength, userInput, cookieObj, propArray;
@@ -77,28 +91,50 @@ class main {
         // this.userInput.baseInterval = width/dataLength;
     }
     
-    dostuff() {
-        this.ctx = this.lastFrame;
+    parseCookie() {
+        let cookieObj: any = {};
+        const allCookie = document.cookie;
+        // console.log('allCookie:', allCookie)
+        const cookieArray = allCookie.split('; ');
+        // console.log('cookieArray:', cookieArray);
+        const cookieArrayLength = cookieArray.length;
+        // let cookie;
+        for (let i = 0; i < cookieArrayLength; i++) {
+          const cookie: string[] = cookieArray[i].split('=');
+          // console.log('cookie:',cookie);
+          cookie[0] === "userChartPreference" ? cookieObj[cookie[0]] = JSON.parse(cookie[1]) : null;
+          // cookie[0] === "" && cookie[1] === undefined ? null : cookieObj[cookie[0]] = JSON.parse(cookie[1]);
+        }
+        return cookieObj;
     }
+
+    dostuff() {
+        this.main_ctx = this.lastFrame;
+    }
+
     setSpace() {
         // chercher l'element canvas et son element parent;
         // mettre le width et height de canvas = width et height de parent element
-        let parent = document.getElementById("supercontenaire");
+        let parent = document.getElementById('supercontenaire');
         // console.log(parent.clientWidth, parent.clientHeight);
-        let canvas: any = document.getElementById("canvas");
+        let main_canvas: any = document.getElementById('main_canvas');
+        let cursor_canvas: any = document.getElementById('cursor_canvas');
         // canvas.clientHeight = parent.clientHeight;
-        this.ctx = canvas.getContext('2d');
+        this.main_ctx = main_canvas.getContext('2d');
+        this.cursor_ctx = cursor_canvas.getContext('2d')
         console.log(parent.clientWidth, this.dataLength);
         this.baseInterval = parent.clientWidth/this.dataLength;
         // this.nextAbscisse = this.baseInterval;
-        canvas.width = parent.clientWidth;
-        canvas.height = parent.clientHeight;
+        main_canvas.width = parent.clientWidth;
+        main_canvas.height = parent.clientHeight;
+        cursor_canvas.width = parent.clientWidth;
+        cursor_canvas.height = parent.clientHeight;
         this.width = parent.clientWidth;
         this.height = parent.clientHeight;
     //     this.ctx.clearRect(0, 0, canvas.width, canvas.height); // permet de clear mon espace de dessin, à faire entre chaque frame
     //     this.ctx.fillStyle = 'green';
     //     this.ctx.fillRect(0, 0, parent.clientWidth, parent.clientHeight);
-        console.log(this.ctx);
+        console.log(this.main_ctx);
         // let width, content;
         // width = document.getElementById("supercontenaire").clientWidth;
         // let content = `
@@ -122,14 +158,14 @@ class main {
             let lenght = (this.height*0.03) + (this.height * 0.85) * ( 1 - ( (data[i].lowest - verticalScales.lowestPrice) / range)) - y;            
             // let y1 = (this.height*0.03) + this.setHeight((this.height*0.85), verticalScales, data[i].highest);
             // let y2 = (this.height*0.03) + this.setHeight((this.height*0.85), verticalScales, data[i].lowest);
-            this.ctx.fillStyle = 'rgb(0, 0, 200)';
-            this.ctx.fillRect(currentAbscisse, y, this.baseInterval-1, lenght)
+            this.main_ctx.fillStyle = 'rgb(0, 0, 200)';
+            this.main_ctx.fillRect(currentAbscisse, y, this.baseInterval-1, lenght)
             nextAbscisse += this.baseInterval;
             currentAbscisse += this.baseInterval; //plus tard - pan >> done
         }
         // this.nextAbscisse += this.baseInterval;
         // this.currentAbscisse += this.baseInterval; //plus tard - pan >> done
-        this.lastFrame = this.ctx;
+        this.lastFrame = this.main_ctx;
         // this.ctx.stroke();
     }
 
