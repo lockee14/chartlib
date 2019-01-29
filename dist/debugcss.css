@@ -119,11 +119,15 @@ div {
 }
 
 .canvas {
-  width:100%
-}
-
-#cursor_canvas {
+  /* width:100%; rend le canvas flou*/ 
   position: absolute;
   left: 0px;
   top: 0px;
+}
+
+#cursor_canvas {
+  z-index: 5;
+  /* position: absolute;
+  left: 0px;
+  top: 0px; */
 }
