@@ -77,10 +77,10 @@ class main {
     displayPrices_ctx: any;
     main_ctx: any;
     cursor_ctx: any;
-    cursorStyle: any; // useless?
+    // cursorStyle: any; // useless?
     lastFrame: any;
-    start: number = 0;
-    stop: number;
+    // start: number = 0; // useless?
+    // stop: number; // useless?
     zoom: number = 1;
     click: boolean = false;
     pan: number = 0;
@@ -97,9 +97,9 @@ class main {
         this.cursorDebug = document.getElementById("cursorDebug");
         this.data = data;
         this.dataLength = data.length;
-        this.stop = this.dataLength;
+        // this.stop = this.dataLength;
         this.cookieObj = this.parseCookie();
-        this.cursorStyle = document.body.style.cursor;
+        // this.cursorStyle = document.body.style.cursor;
         this.contenaire = document.getElementById("contenaire");
         this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect();
         this.setSpace();
@@ -128,6 +128,7 @@ class main {
     }
 
     setSpace() {
+        // a terme creer les 4 element canvas ici et les inserer dans contenaire ainsi que l'image
         // chercher l'element canvas et son element parent;
         // mettre le width et height de canvas = width et height de parent element
         let parent = document.getElementById('supercontenaire');
@@ -172,7 +173,12 @@ class main {
         let currentInterval: number = this.baseInterval * this.zoom;
         // console.log("pricespace:", this.priceSpace, "currentAbscisse", currentAbscisse);
         let nextAbscisse: number = currentAbscisse;
-        let verticalScales = this.setVerticalScale(data, this.start, this.stop);
+        let start = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0; // pas encore de pan donc
+        // this.pan > 0 ? start = Math.floor(this.user.pan/(this.user.baseInterval*this.user.zoom)) : null;
+        start = start > this.dataLength-1 ? this.dataLength-1 : start;
+        let stop = Math.floor(this.width/currentInterval + this.pan/currentInterval); // math.floor? ici ajouté pan >> done
+        stop = stop > this.dataLength-1 ? this.dataLength-1 : stop;
+        let verticalScales = this.setVerticalScale(data, start, stop);
         this.displayPrices(verticalScales);
         // let lowestPrice, highestPrice,lowestVolume, highestVolume;
         // this.ctx.beginPath();
@@ -236,7 +242,7 @@ class main {
     }
 
     displayPrices(verticalScales: any) { // dispose les prix 
-        // pour que les prix s'ajuste je vais devoir modifier les input de la fonction qui donne l'echelle verticale, car start et stop sont assigné au valeur par default de data
+        // pour que les prix s'ajuste je vais devoir modifier les input de la fonction qui donne l'echelle verticale, car start et stop sont assigné au valeur par default de data >> done
         let h, w, priceInterval, displayData, y, newText, newLine;
         h = this.height;
         w = this.width;
@@ -247,7 +253,8 @@ class main {
         this.displayPrices_ctx.clearRect(0, 0, this.width, this.height);
         for(let i=0;i<5;i++) {
             //priceInterval += preciseRound((priceRange/6),1); // il y a bug prix de type xxxx.xxxxx apparaisse >> pourquoi?
-            priceInterval += Math.round((yRange/6)); // simplement faire ça?
+            priceInterval += Math.round(yRange/6); // simplement faire ça?
+            priceInterval = this.preciseRound(priceInterval, 2);
             // priceInterval += preciseRound(priceRange/6,2);
             y = h*(1-((priceInterval-verticalScales.lowestPrice)/(yRange))); // encore p[1]-p[0] aka priceRange ça je le calcul aussi dans vertical et juste au dessus
             // crée le text
@@ -318,7 +325,8 @@ class main {
 
     displayData(currentData: any) {
         this.upperText_ctx.clearRect(0, 0, this.width, this.height);
-        this.upperText_ctx.fillText(`dublabla ${JSON.stringify(currentData)}`, 0, 10);
+        this.upperText_ctx.font = "13px sans serif";
+        this.upperText_ctx.fillText(`date: ${currentData.date}, average: ${currentData.average}, highest: ${currentData.highest}, lowest: ${currentData.lowest}, volume: ${currentData.volume}, order count: ${currentData.order_count}`, 5, 12, this.width);
     }
 
     wheelHandler(event: any) {
