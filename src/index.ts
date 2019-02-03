@@ -4,7 +4,11 @@
 // apprendre à utiliser canvas
 // chose à ajouté:
 //      -performance: lors du deplacement du curseur, plutot que de tout redessiner, enregistrer l'etat precedent de mon canva et le reservir avec le mouvement du cursuer (sauf si deplacement dans les chart evidemment)
-//      -prise en charge de la langue
+//      -prise en charge de la langue, comment faire?: >> done
+//          -en entré une variable fourni par mon apli ex: "en-us"
+//          -crée un objet contenant les traduction
+//          -appeler les element de mon object en fonction de [context][lang]
+//      -zoom et deplacement pour modible, voir le touch event
 //      -?
 
 //function that detect if the device is mobile or not
@@ -29,29 +33,18 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
     if (this.readyState === DONE) {
         obj = JSON.parse(xmlhttp.response);
         // initialisation(obj);
-        new main().init(obj);
+        let lang = 'en-us'
+        new main().init(obj, lang);
       }
   };
   xmlhttp.send(null);
 
 };
 
-// 3 classe, un main qui gère le tout, un userinput pour les interaction de l'utilisateur, un useroption pour les options de l'utilisateur
-//
-// 3 verticale espace dans mon graph: height * 0.03 pour le text, height * 0.85 pour les chart, height * 0.12 pour le volume
 
-// 2 espace horizontal dans mon graph: width * 0.045 pour les prix, le reste pour le graph
-    // >> 2éme solution ? definis cette espace dans le html avec un canvas externe qui contient les autres canvas, une difference de 100px donc 50px de coté
-        // en faite non 1er solution plus simple
-// plusieurs solution pour geré le mouvement cursuer:
-//      save the last frame
-//      2 canvas cursor on top of the complex one
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Touch for mobile touch and drag
 
-// 2 solution pour le deplacement du curseur:
-//      -sauvegarder la dernier frame et ne mettre à jour que le necessaire, oui mais comment?
-//      -superposer 2 element canvas (ou plus) et afficher les chart dans l'un le curseur dans l'autre
 // import { test } from './cursor_movement';
 
 // faire attention lors du deplacement du curseur faire des tests
@@ -59,16 +52,20 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
 
 // ajouter quelque chose pour le debug
 // import{ Debug } from './debug';
+import { TRANSLATION } from './translation';
+// declarer ces constantes plus pres de lieu d'utilisation?
 const upperTextSpace: number = 0.03;
 const displayPriceSpace: number = 0.045;
 const mainSpace: number = 0.85;
 const restSpace: number = 0.12;
 class main {
+    translation = TRANSLATION;
     // userInput: any; // useless?
     cursorDebug: any;
     cookieObj: any;
     data: any;
     dataLength: number;
+    lang: string;
     width: number;
     height: number;
     priceSpace: number;
@@ -91,47 +88,23 @@ class main {
     offset: number = 0;
     currentDataPosition: number = 0;
     contenaire: any;
-    contenaireRect: any;
+    contenaireRect: any; // useless?
     // currentAbscisse: number = 0;
     // nextAbscisse: number = 0;
     
     constructor(/*debug: Debug*/) {}
 
-    init(data: any) {
+    init(data: any, lang: string) {
         this.cursorDebug = document.getElementById("cursorDebug");
         this.data = data;
         this.dataLength = data.length;
+        this.lang = lang;
         // this.stop = this.dataLength;
         this.cookieObj = this.parseCookie();
         // this.cursorStyle = document.body.style.cursor;
         this.contenaire = document.getElementById("contenaire");
-        this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect();
-        ////// test /////////
-        // let canvas = document.createElement('canvas').setAttribute('id', 'displayPrices_canvas');
-        // // Element.setAttribute(name, value);
-        // canvas.setAttribute('id', 'upperText_canvas'); //.id = 'upperText_canvas';
-        // this.contenaire.appendChild(document.createElement('canvas').setAttribute('id', 'displayPrices_canvas'));
-        // console.log(canvas)
-        // canvas.setAttribute('id', 'displayPrices_canvas');//.id = 'displayPrices_canvas';
-        // this.contenaire.appendChild(document.createElement('canvas').setAttribute('id', 'displayPrices_canvas'));
-        // console.log(canvas)
+        this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless?
 
-        // canvas.setAttribute('id', 'main_canvas');//id = 'main_canvas';
-        // this.contenaire.appendChild(document.createElement('canvas').setAttribute('id', 'displayPrices_canvas'));
-        // console.log(canvas)
-
-        // canvas.setAttribute('id', 'cursor_canvas');//id = 'cursor_canvas';
-        // this.contenaire.appendChild(canvas);
-        // console.log(canvas)
-
-        // this.contenaire.appendChild(canvas.id = 'displayPrices_canvas')
-        // this.contenaire.appendChild(canvas.id = 'main_canvas')
-        // this.contenaire.appendChild(canvas.id = 'curso_canvas')
-        // <canvas id="upperText_canvas" class="canvas"></canvas>
-        //                 <canvas id="displayPrices_canvas" class="canvas"></canvas>
-        //                 <canvas id="main_canvas" class="canvas"></canvas>
-        //                 <canvas id="cursor_canvas" class="canvas"></canvas>
-        /// end of test///////
         this.createCanvas();
         this.setSpace();
         ////// debug ///////
@@ -152,10 +125,15 @@ class main {
         // console.log(pulu);
         //// fin du test
         this.contenaire.addEventListener("mousemove", (event: MouseEvent) => this.cursor(event));
+        this.contenaire.addEventListener("touchstart", (event: TouchEvent) => this.handleTouch(event))
         this.contenaire.addEventListener("wheel", (event: WheelEvent) => this.wheelHandler(event));
         this.contenaire.addEventListener("mousedown", (event: MouseEvent) => this.click = this.click ? false : true);
         this.contenaire.addEventListener("mouseup", (event: MouseEvent) => this.click = true ?  false : true);
         this.contenaire.addEventListener("mouseleave",(event: MouseEvent) => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
+        this.contenaire.addEventListener("touchmove", (event: TouchEvent) => this.handleTouch(event))
+        this.contenaire.addEventListener("touchend", (event: TouchEvent) => this.handleTouch(event))
+        this.contenaire.addEventListener("touchcancel", (event: TouchEvent) => this.handleTouch(event))
+        
         window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
     }
 
@@ -320,27 +298,27 @@ class main {
         }
     }
 
-    cursor(event:any) {
+    cursor(event: MouseEvent) {
         // prendre en compte les decallages comme displayPriceSpace
         // reflechir aux calcul de datapPosition xcoordonnée
         // je dois recuperer contenaireRect depuis le dom sinon les valeur ne change pas
         event.preventDefault(); // sert à eviter que la page entière ne scroll
         // this.cursorStyle = 'crosshair'; // ne fonctionne pas ;'(
-        console.log(this.contenaireRect.top);
+        let contenaireRect = document.getElementById("contenaire").getBoundingClientRect();
         let x: number = event.clientX;
         let y: number = event.clientY;
         let ajustedHeight: number = this.height*upperTextSpace;
         let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
         let chartWidthOffset: number = ((this.baseInterval-1)*this.zoom)/2;
-        // let dataPosition: number = Math.round((x-this.contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + Math.round(this.pan/interval); // calcule la position courante au sein de data
-        let dataPosition: number = Math.round(((x-this.contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
+        // let dataPosition: number = Math.round((x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + Math.round(this.pan/interval); // calcule la position courante au sein de data
+        let dataPosition: number = Math.round(((x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
         this.currentDataPosition = dataPosition
         let xCoordonnée: number = interval*dataPosition-this.pan;
-        let yCoordonnée: number = y - this.contenaireRect.top;
+        let yCoordonnée: number = y - contenaireRect.top;
         this.cursorDebug.innerHTML = 
             `<p>interval: ${interval}, priceSpace: ${this.priceSpace}, dataLenght: ${this.dataLength},
-            rawdata: ${(x-this.contenaireRect.left - this.priceSpace - chartWidthOffset)/interval} : ${this.pan/interval}, dataPosition: ${dataPosition}, xcoordonnée: ${xCoordonnée},
-            x: ${x}, y: ${y}, contenaireRect: ${JSON.stringify(this.contenaireRect)}</p>`
+            rawdata: ${(x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval} : ${this.pan/interval}, dataPosition: ${dataPosition}, xcoordonnée: ${xCoordonnée},
+            x: ${x}, y: ${y}, contenaireRect: ${JSON.stringify(contenaireRect)}</p>`
         // dataPosition >= 0 && dataPosition < this.dataLength ? showData(this.data[dataPosition]) : null; // prendre en compte le pan
         this.click === true ? this.panHandler(event) : this.offset = 0; // handle pan;
         // console.log(xCoordonnée, this.contenaireRect);
@@ -366,13 +344,24 @@ class main {
         // this.click === true ? this.panHandler(event) : this.offset = 0; // handle pan;
     }
 
+    handleTouch(event: TouchEvent) {
+        event.preventDefault();
+        console.log(event);
+        // compter le nombre de touch dans touch list
+        // verifier le type d'event, touchstart/end/move/cancel
+        // si 1 >> move
+        // si 2 >> scroll
+        // si >2 cancel ne rien faire 
+    }
+
     displayData(currentData: any) {
         this.upperText_ctx.clearRect(0, 0, this.width, this.height);
         this.upperText_ctx.font = "13px sans serif";
-        this.upperText_ctx.fillText(`date: ${currentData.date}, average: ${currentData.average}, highest: ${currentData.highest}, lowest: ${currentData.lowest}, volume: ${currentData.volume}, order count: ${currentData.order_count}`, 5, 12, this.width);
+        this.upperText_ctx.fillText(`${this.translation['date'][this.lang]}: ${currentData.date}, ${this.translation['average'][this.lang]}: ${currentData.average}, ${this.translation['highest'][this.lang]}: ${currentData.highest}, ${this.translation['lowest'][this.lang]}: ${currentData.lowest}, ${this.translation['volume'][this.lang]}: ${currentData.volume}, ${this.translation['order_count'][this.lang]}: ${currentData.order_count}`,5, 12, this.width);
+        // this.upperText_ctx.fillText(`date: ${currentData.date}, average: ${currentData.average}, highest: ${currentData.highest}, lowest: ${currentData.lowest}, volume: ${currentData.volume}, order count: ${currentData.order_count}`, 5, 12, this.width);
     }
 
-    wheelHandler(event: any) {
+    wheelHandler(event: WheelEvent) {
         event.preventDefault(); // sert à eviter que la page entière ne scroll
         // this.user.cursorPosition.x = event.clientX; // utiliser ça ou plutot mettre dans mon object d'appel le numero de data dans cursor (dataPosition) et l'utiliser ici avec this.dataPosition    
         ////////// test pour zoom centré ////////////////////
