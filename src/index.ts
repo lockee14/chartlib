@@ -73,6 +73,10 @@ class main {
     height: number;
     priceSpace: number;
     baseInterval: number;
+    upperText_canvas: any;
+    displayPrices_canvas: any;
+    main_canvas: any;
+    cursor_canvas: any;
     upperText_ctx: any;
     displayPrices_ctx: any;
     main_ctx: any;
@@ -102,6 +106,33 @@ class main {
         // this.cursorStyle = document.body.style.cursor;
         this.contenaire = document.getElementById("contenaire");
         this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect();
+        ////// test /////////
+        // let canvas = document.createElement('canvas').setAttribute('id', 'displayPrices_canvas');
+        // // Element.setAttribute(name, value);
+        // canvas.setAttribute('id', 'upperText_canvas'); //.id = 'upperText_canvas';
+        // this.contenaire.appendChild(document.createElement('canvas').setAttribute('id', 'displayPrices_canvas'));
+        // console.log(canvas)
+        // canvas.setAttribute('id', 'displayPrices_canvas');//.id = 'displayPrices_canvas';
+        // this.contenaire.appendChild(document.createElement('canvas').setAttribute('id', 'displayPrices_canvas'));
+        // console.log(canvas)
+
+        // canvas.setAttribute('id', 'main_canvas');//id = 'main_canvas';
+        // this.contenaire.appendChild(document.createElement('canvas').setAttribute('id', 'displayPrices_canvas'));
+        // console.log(canvas)
+
+        // canvas.setAttribute('id', 'cursor_canvas');//id = 'cursor_canvas';
+        // this.contenaire.appendChild(canvas);
+        // console.log(canvas)
+
+        // this.contenaire.appendChild(canvas.id = 'displayPrices_canvas')
+        // this.contenaire.appendChild(canvas.id = 'main_canvas')
+        // this.contenaire.appendChild(canvas.id = 'curso_canvas')
+        // <canvas id="upperText_canvas" class="canvas"></canvas>
+        //                 <canvas id="displayPrices_canvas" class="canvas"></canvas>
+        //                 <canvas id="main_canvas" class="canvas"></canvas>
+        //                 <canvas id="cursor_canvas" class="canvas"></canvas>
+        /// end of test///////
+        this.createCanvas();
         this.setSpace();
         ////// debug ///////
 
@@ -122,50 +153,60 @@ class main {
         //// fin du test
         this.contenaire.addEventListener("mousemove", (event: MouseEvent) => this.cursor(event));
         this.contenaire.addEventListener("wheel", (event: WheelEvent) => this.wheelHandler(event));
-        this.contenaire.addEventListener("mousedown", (event: MouseEvent) => /*event.preventDefault();*/ this.click = this.click ? false : true);
+        this.contenaire.addEventListener("mousedown", (event: MouseEvent) => this.click = this.click ? false : true);
         this.contenaire.addEventListener("mouseup", (event: MouseEvent) => this.click = true ?  false : true);
         this.contenaire.addEventListener("mouseleave",(event: MouseEvent) => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
+        window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
     }
 
+    createCanvas() {
+        this.upperText_canvas = document.createElement('canvas');// .setAttribute('id', 'upperText_canvas');
+        this.upperText_canvas.id = 'upperText_canvas';
+        this.upperText_canvas.className = 'canvas';
+        this.displayPrices_canvas = document.createElement('canvas');//.setAttribute('id', 'displayPrices_canvas');
+        this.displayPrices_canvas.id = 'displayPrices_canvas';        
+        this.displayPrices_canvas.className = 'canvas';
+        this.main_canvas = document.createElement('canvas');//.setAttribute('id', 'main_canvas');
+        this.main_canvas.id = 'main_canvas';
+        this.main_canvas.className = 'canvas';
+        this.cursor_canvas = document.createElement('canvas');//.setAttribute('id', 'cursor_canvas');
+        this.cursor_canvas.id = 'cursor_canvas';
+        this.cursor_canvas.className = 'canvas';
+        
+        this.contenaire.appendChild(this.upperText_canvas);
+        this.contenaire.appendChild(this.displayPrices_canvas);
+        this.contenaire.appendChild(this.main_canvas);
+        this.contenaire.appendChild(this.cursor_canvas);
+
+        this.upperText_ctx = this.upperText_canvas.getContext('2d');
+        this.displayPrices_ctx = this.displayPrices_canvas.getContext('2d');
+        this.main_ctx = this.main_canvas.getContext('2d');
+        this.cursor_ctx = this.cursor_canvas.getContext('2d');
+    }
     setSpace() {
-        // a terme creer les 4 element canvas ici et les inserer dans contenaire ainsi que l'image
+        // a terme creer les 4 element canvas ici et les inserer dans contenaire >> done 
+        // faire pareil pour l'image
         // chercher l'element canvas et son element parent;
         // mettre le width et height de canvas = width et height de parent element
         let parent = document.getElementById('supercontenaire');
-        // console.log(parent.clientWidth, parent.clientHeight);
-        let upperText_canvas: any = document.getElementById('upperText_canvas');
-        let displayPrices_canvas: any = document.getElementById('displayPrices_canvas');
-        let main_canvas: any = document.getElementById('main_canvas');
-        let cursor_canvas: any = document.getElementById('cursor_canvas');
-        // console.log("main_canvas.width", main_canvas.width)
-        // main_canvas.width = main_canvas.width-100;
-        // cursor_canvas.width = cursor_canvas.width-100;  
-        // console.log("main_canvas.width", main_canvas.width)
-        // canvas.clientHeight = parent.clientHeight;
-        this.upperText_ctx = upperText_canvas.getContext('2d');
-        this.displayPrices_ctx = displayPrices_canvas.getContext('2d');
-        this.main_ctx = main_canvas.getContext('2d');
-        this.cursor_ctx = cursor_canvas.getContext('2d');
-        console.log(parent.clientWidth, this.dataLength);
         
         // this.baseInterval = parent.clientWidth/this.dataLength;
         this.priceSpace = parent.clientWidth * displayPriceSpace;
         this.baseInterval = (parent.clientWidth - this.priceSpace)/this.dataLength; // with displaypricemarge
         // this.nextAbscisse = this.baseInterval;
-        upperText_canvas.width = parent.clientWidth;
-        upperText_canvas.height = parent.clientHeight;
-        displayPrices_canvas.width = parent.clientWidth;
-        displayPrices_canvas.height = parent.clientHeight; 
-        main_canvas.width = parent.clientWidth;
-        main_canvas.height = parent.clientHeight;
-        cursor_canvas.width = parent.clientWidth;
-        cursor_canvas.height = parent.clientHeight;
+        this.upperText_canvas.width = parent.clientWidth;
+        this.upperText_canvas.height = parent.clientHeight;
+        this.displayPrices_canvas.width = parent.clientWidth;
+        this.displayPrices_canvas.height = parent.clientHeight; 
+        this.main_canvas.width = parent.clientWidth;
+        this.main_canvas.height = parent.clientHeight;
+        this.cursor_canvas.width = parent.clientWidth;
+        this.cursor_canvas.height = parent.clientHeight;
         // this.width = parent.clientWidth;
-        this.width = main_canvas.width;
+        this.width = this.main_canvas.width;
         this.height = parent.clientHeight;
     }
 
-    
     displayChart(data: any) {
         // let currentAbscisse: number = 0;
         // let nextAbscisse: number = this.baseInterval;
@@ -282,8 +323,10 @@ class main {
     cursor(event:any) {
         // prendre en compte les decallages comme displayPriceSpace
         // reflechir aux calcul de datapPosition xcoordonnée
+        // je dois recuperer contenaireRect depuis le dom sinon les valeur ne change pas
         event.preventDefault(); // sert à eviter que la page entière ne scroll
         // this.cursorStyle = 'crosshair'; // ne fonctionne pas ;'(
+        console.log(this.contenaireRect.top);
         let x: number = event.clientX;
         let y: number = event.clientY;
         let ajustedHeight: number = this.height*upperTextSpace;
