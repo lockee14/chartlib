@@ -82,11 +82,13 @@ class main {
     lastFrame: any;
     // start: number = 0; // useless?
     // stop: number; // useless?
+    lastDeltaDiff: number;
     zoom: number = 1;
     click: boolean = false;
     pan: number = 0;
     offset: number = 0;
     currentDataPosition: number = 0;
+    pinchZoomDataPosition: number;
     contenaire: any;
     contenaireRect: any; // useless?
     // currentAbscisse: number = 0;
@@ -124,15 +126,16 @@ class main {
         // pulu = pulu.toDataURL()
         // console.log(pulu);
         //// fin du test
-        this.contenaire.addEventListener("mousemove", (event: MouseEvent) => this.cursor(event));
+        // scope.setTimeout(fonction[, delai, param1, param2, ...]);
+        this.contenaire.addEventListener("mousemove", (event: MouseEvent) => this.handleCursor(event));
         this.contenaire.addEventListener("touchstart", (event: TouchEvent) => this.handleTouch(event))
         this.contenaire.addEventListener("wheel", (event: WheelEvent) => this.wheelHandler(event));
         this.contenaire.addEventListener("mousedown", (event: MouseEvent) => this.click = this.click ? false : true);
         this.contenaire.addEventListener("mouseup", (event: MouseEvent) => this.click = true ?  false : true);
         this.contenaire.addEventListener("mouseleave",(event: MouseEvent) => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
-        this.contenaire.addEventListener("touchmove", (event: TouchEvent) => this.handleTouch(event))
-        this.contenaire.addEventListener("touchend", (event: TouchEvent) => this.handleTouch(event))
-        this.contenaire.addEventListener("touchcancel", (event: TouchEvent) => this.handleTouch(event))
+        this.contenaire.addEventListener("touchmove", (event: TouchEvent) => this.handleTouch(event));
+        // this.contenaire.addEventListener("touchend", (event: TouchEvent) => this.handleTouch(event))
+        // this.contenaire.addEventListener("touchcancel", (event: TouchEvent) => this.handleTouch(event))
         
         window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
     }
@@ -298,19 +301,58 @@ class main {
         }
     }
 
-    cursor(event: MouseEvent) {
-        // prendre en compte les decallages comme displayPriceSpace
-        // reflechir aux calcul de datapPosition xcoordonnée
-        // je dois recuperer contenaireRect depuis le dom sinon les valeur ne change pas
+    handleCursor(event: MouseEvent) {
         event.preventDefault(); // sert à eviter que la page entière ne scroll
-        // this.cursorStyle = 'crosshair'; // ne fonctionne pas ;'(
+        this.click === true ? this.panHandler(event) : this.offset = 0; // handle pan;
+        this.moveGraph(event.clientX, event.clientY);
+    }
+
+    handleTouch(event: TouchEvent) {
+        event.preventDefault();
+        const touchNumber: number = event.touches.length;
+        if (touchNumber === 1) {
+            event.type === 'touchmove' ? this.panHandler(event.touches[0]) : this.offset = 0;
+            this.moveGraph(event.touches[0].clientX, event.touches[0].clientY);
+        } else if (touchNumber === 2 && event.type === 'touchstart') {
+            const x0 = event.touches[0].clientX;
+            const x1 = event.touches[1].clientX;
+            const contenaireRect = document.getElementById("contenaire").getBoundingClientRect();
+            
+            let delta1 = event.touches[0].clientX / event.touches[0].clientY;
+            let delta2 = event.touches[1].clientX / event.touches[1].clientY;
+            this.lastDeltaDiff = delta1 > delta2 ? delta1-delta2 : delta2 - delta1;
+
+            let chartWidthOffset: number = ((this.baseInterval-1)*this.zoom)/2;
+            let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
+            let midx = x0 > x1 ? x1 + (x0-x1)/2 : x0 + (x1-x0)/2;
+            this.pinchZoomDataPosition = Math.round(((midx-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + this.pan/interval)
+
+        } else if (touchNumber === 2 && event.type === 'touchmove') {
+            let delta1 = event.touches[0].clientX / event.touches[0].clientY;
+            let delta2 = event.touches[1].clientX / event.touches[1].clientY;
+            let deltaDiff = delta1 > delta2 ? delta1-delta2 : delta2 - delta1;
+            let lastInterval = this.zoom*this.baseInterval
+
+            if(deltaDiff > (this.lastDeltaDiff + (this.lastDeltaDiff/15)) && this.zoom < 16) { // avant 16 c'etait 32
+                this.lastDeltaDiff = deltaDiff;
+                this.zoom = this.preciseRound((this.zoom*1.2),2);
+                this.pan +=  (this.zoom*this.baseInterval - lastInterval)*this.pinchZoomDataPosition; // this.currentDataPosition; //center the zoom on the current cursor position // est-ce une bonne idée de changer pan ici?
+            } else if (deltaDiff < (this.lastDeltaDiff - (this.lastDeltaDiff/15)) && this.zoom > 1) {
+                this.lastDeltaDiff = deltaDiff;
+                this.zoom = this.preciseRound((this.zoom/1.2),2);
+                this.pan +=  (this.zoom*this.baseInterval - lastInterval)*this.pinchZoomDataPosition; // this.currentDataPosition; //center the zoom on the current cursor position // est-ce une bonne idée de changer pan ici?
+            }
+
+            this.preventOutOfScreen();
+            this.displayChart(this.data);
+        } 
+    }
+
+    moveGraph(x: number, y: number) {
         let contenaireRect = document.getElementById("contenaire").getBoundingClientRect();
-        let x: number = event.clientX;
-        let y: number = event.clientY;
         let ajustedHeight: number = this.height*upperTextSpace;
         let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
         let chartWidthOffset: number = ((this.baseInterval-1)*this.zoom)/2;
-        // let dataPosition: number = Math.round((x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + Math.round(this.pan/interval); // calcule la position courante au sein de data
         let dataPosition: number = Math.round(((x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
         this.currentDataPosition = dataPosition
         let xCoordonnée: number = interval*dataPosition-this.pan;
@@ -319,39 +361,19 @@ class main {
             `<p>interval: ${interval}, priceSpace: ${this.priceSpace}, dataLenght: ${this.dataLength},
             rawdata: ${(x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval} : ${this.pan/interval}, dataPosition: ${dataPosition}, xcoordonnée: ${xCoordonnée},
             x: ${x}, y: ${y}, contenaireRect: ${JSON.stringify(contenaireRect)}</p>`
-        // dataPosition >= 0 && dataPosition < this.dataLength ? showData(this.data[dataPosition]) : null; // prendre en compte le pan
-        this.click === true ? this.panHandler(event) : this.offset = 0; // handle pan;
-        // console.log(xCoordonnée, this.contenaireRect);
-        // console.log('top', this.contenaireRect.top, 'left', this.contenaireRect.left);
+
         this.cursor_ctx.clearRect(0, 0, this.width, this.height);
         if(xCoordonnée > 0 && y > ajustedHeight) {
             // console.log(this.height*0.03, y)
             document.body.style.cursor = 'crosshair';
             this.cursor_ctx.fillStyle = 'rgb(255, 0, 0)';
             this.cursor_ctx.fillRect(xCoordonnée + this.priceSpace + chartWidthOffset, ajustedHeight, 1, this.height); //ligne verticale
-            // this.cursor_ctx.fillRect(xCoordonnée + this.priceSpace /*+((this.baseInterval-1)*this.zoom)/2*/, ajustedHeight, 1, this.height); //ligne verticale
             this.cursor_ctx.fillRect(this.priceSpace, yCoordonnée, this.width, 1); //ligne horizontal
         }
-        // this.cursor_ctx.fillStyle = 'rgb(255, 0, 0)';
-        // // this.cursor_ctx.fillRect(xCoordonnée, 0, 1, this.height);
-        // this.cursor_ctx.fillRect(xCoordonnée+((this.baseInterval-1)*this.zoom)/2, this.height*upperTextSpace, 1, this.height);
-        // // this.cursor_ctx.fillRect(0, y - this.contenaireRect.top, this.width, 1);
-        // this.cursor_ctx.fillRect(this.priceSpace, y - this.contenaireRect.top, this.width, 1);
+
         if (dataPosition >= 0 && dataPosition < this.dataLength) {
             this.displayData(this.data[dataPosition]);
         }
-        // dataPosition >= 0 && dataPosition < this.dataLength ? showData(this.data[dataPosition]) : null; // prendre en compte le pan
-        // this.click === true ? this.panHandler(event) : this.offset = 0; // handle pan;
-    }
-
-    handleTouch(event: TouchEvent) {
-        event.preventDefault();
-        console.log(event);
-        // compter le nombre de touch dans touch list
-        // verifier le type d'event, touchstart/end/move/cancel
-        // si 1 >> move
-        // si 2 >> scroll
-        // si >2 cancel ne rien faire 
     }
 
     displayData(currentData: any) {
