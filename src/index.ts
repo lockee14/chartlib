@@ -8,8 +8,10 @@
 //          -en entré une variable fourni par mon apli ex: "en-us"
 //          -crée un objet contenant les traduction
 //          -appeler les element de mon object en fonction de [context][lang]
-//      -zoom et deplacement pour modible, voir le touch event
-//      -?
+//      -zoom et deplacement pour modible, voir le touch event >> done?
+//      -comment implementer les options?
+//      -comment externaliser la creation des chart/indicateur?
+//      -utiliser un svg material design pour la roue d'option plutot que l'image
 
 //function that detect if the device is mobile or not
 // function isMobileDevice() {
@@ -34,7 +36,7 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
         obj = JSON.parse(xmlhttp.response);
         // initialisation(obj);
         let lang = 'en-us'
-        new main().init(obj, lang);
+        new main(new ShapeCreator, new UserPreferences).init(obj, lang);
       }
   };
   xmlhttp.send(null);
@@ -48,28 +50,41 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
 // import { test } from './cursor_movement';
 
 // faire attention lors du deplacement du curseur faire des tests
-    // debug curseur car c'est foireux
+    // debug curseur car c'est foireux >> done?
 
 // ajouter quelque chose pour le debug
 // import{ Debug } from './debug';
+import { ShapeCreator } from './shape-creator';
+import { UserPreferences } from './user-preferences';
 import { TRANSLATION } from './translation';
+import { DEFAULTOPTIONS } from './default-options';
 // declarer ces constantes plus pres de lieu d'utilisation?
 const upperTextSpace: number = 0.03;
 const displayPriceSpace: number = 0.045;
 const mainSpace: number = 0.85;
-const restSpace: number = 0.12;
+const volumeSpace: number = 0.12;
 class main {
     translation = TRANSLATION;
+    defaultOptions = DEFAULTOPTIONS;
     // userInput: any; // useless?
     cursorDebug: any;
     cookieObj: any;
     data: any;
     dataLength: number;
     lang: string;
+
     width: number;
     height: number;
-    priceSpace: number;
+    // attention verifier de quoi on parle mettre un X ou Y devant pour abs/ord à verifier
+
+    Y_upperTextSpace: number;
+    Y_mainSpace: number;
+    Y_volumeSpace: number;
+    X_priceSpace: number;
+
     baseInterval: number;
+    dataGap: number;
+
     upperText_canvas: any;
     displayPrices_canvas: any;
     main_canvas: any;
@@ -78,6 +93,7 @@ class main {
     displayPrices_ctx: any;
     main_ctx: any;
     cursor_ctx: any;
+
     // cursorStyle: any; // useless?
     lastFrame: any;
     // start: number = 0; // useless?
@@ -94,7 +110,11 @@ class main {
     // currentAbscisse: number = 0;
     // nextAbscisse: number = 0;
     
-    constructor(/*debug: Debug*/) {}
+    constructor(
+        private shapeCreator: ShapeCreator,
+        private userPreference: UserPreferences
+        /*debug: Debug*/
+        ) {}
 
     init(data: any, lang: string) {
         this.cursorDebug = document.getElementById("cursorDebug");
@@ -130,12 +150,13 @@ class main {
         this.contenaire.addEventListener("mousemove", (event: MouseEvent) => this.handleCursor(event));
         this.contenaire.addEventListener("touchstart", (event: TouchEvent) => this.handleTouch(event))
         this.contenaire.addEventListener("wheel", (event: WheelEvent) => this.wheelHandler(event));
-        this.contenaire.addEventListener("mousedown", (event: MouseEvent) => this.click = this.click ? false : true);
-        this.contenaire.addEventListener("mouseup", (event: MouseEvent) => this.click = true ?  false : true);
-        this.contenaire.addEventListener("mouseleave",(event: MouseEvent) => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
+        this.contenaire.addEventListener("mousedown", () => this.click = this.click ? false : true);
+        this.contenaire.addEventListener("mouseup", () => this.click = true ?  false : true);
+        this.contenaire.addEventListener("mouseleave",() => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
         this.contenaire.addEventListener("touchmove", (event: TouchEvent) => this.handleTouch(event));
         // this.contenaire.addEventListener("touchend", (event: TouchEvent) => this.handleTouch(event))
         // this.contenaire.addEventListener("touchcancel", (event: TouchEvent) => this.handleTouch(event))
+        // document.getElementById("wheelimg").addEventListener("mousedown", function funcRef (event) { event.preventDefault(); userInput.setOptionSpace(event, funcRef, userInput)});
         
         window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
     }
@@ -172,8 +193,13 @@ class main {
         let parent = document.getElementById('supercontenaire');
         
         // this.baseInterval = parent.clientWidth/this.dataLength;
-        this.priceSpace = parent.clientWidth * displayPriceSpace;
-        this.baseInterval = (parent.clientWidth - this.priceSpace)/this.dataLength; // with displaypricemarge
+        this.height = parent.clientHeight;
+        this.Y_upperTextSpace = this.height*upperTextSpace;
+        this.Y_mainSpace = this.height*mainSpace;
+        this.Y_volumeSpace = this.height*volumeSpace;
+        this.X_priceSpace = parent.clientWidth * displayPriceSpace;
+        this.baseInterval = (parent.clientWidth - this.X_priceSpace)/this.dataLength; // with displaypricemarge
+        this.dataGap = this.baseInterval - (this.baseInterval/5);
         // this.nextAbscisse = this.baseInterval;
         this.upperText_canvas.width = parent.clientWidth;
         this.upperText_canvas.height = parent.clientHeight;
@@ -185,15 +211,15 @@ class main {
         this.cursor_canvas.height = parent.clientHeight;
         // this.width = parent.clientWidth;
         this.width = this.main_canvas.width;
-        this.height = parent.clientHeight;
+        // this.height = parent.clientHeight;
     }
 
     displayChart(data: any) {
         // let currentAbscisse: number = 0;
         // let nextAbscisse: number = this.baseInterval;
-        let currentAbscisse: number = this.priceSpace;
+        let currentAbscisse: number = this.X_priceSpace;
         let currentInterval: number = this.baseInterval * this.zoom;
-        // console.log("pricespace:", this.priceSpace, "currentAbscisse", currentAbscisse);
+        // console.log("pricespace:", this.X_priceSpace, "currentAbscisse", currentAbscisse);
         let nextAbscisse: number = currentAbscisse;
         let start = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0; // pas encore de pan donc
         // this.pan > 0 ? start = Math.floor(this.user.pan/(this.user.baseInterval*this.user.zoom)) : null;
@@ -207,43 +233,34 @@ class main {
         let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         this.main_ctx.clearRect(0, 0, this.width, this.height);
         for(let i = 0; i<this.dataLength; i++) {
-            // do the path hire
-            // externalise the chart,line,bar creation by abscrating them away
-            // let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
-            let y = (this.height*0.03) + (this.height * 0.85) * ( 1 - ( (data[i].highest - verticalScales.lowestPrice) / yRange));            
-            let lenght = (this.height*0.03) + (this.height * 0.85) * ( 1 - ( (data[i].lowest - verticalScales.lowestPrice) / yRange)) - y;            
-            // let y1 = (this.height*0.03) + this.setHeight((this.height*0.85), verticalScales, data[i].highest);
-            // let y2 = (this.height*0.03) + this.setHeight((this.height*0.85), verticalScales, data[i].lowest);
-            // this.main_ctx.fillStyle = 'rgb(0, 0, 200)';
-            // this.main_ctx.fillRect(currentAbscisse, y, this.baseInterval-1, lenght)
-            let interval = this.baseInterval*this.zoom;
-            // this.main_ctx.clearRect(0, 0, this.width, this.height);
-            this.main_ctx.fillStyle = (i > 0 && data[i].average < data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)';
-            /*if (i>0 && data[i].average < data[i-1].average) { // ce if/else ne sert qu'a changer la couleur ici rouge/vert le faire dans la fonction?
-                this.main_ctx.fillStyle = 'rgb(255, 0, 0)';
-                // this.main_ctx.fillRect(currentAbscisse*this.zoom-this.pan, y, this.baseInterval-1, lenght);
-                // this.main_ctx.fillRect(currentAbscisse*this.zoom-this.pan, y, (this.baseInterval-1)*this.zoom, lenght);
-                // this.main_ctx.fillRect(this.priceSpace + currentAbscisse*this.zoom, y, (this.baseInterval-1)*this.zoom, lenght); //test
-            } else {
-                this.main_ctx.fillStyle = 'rgb(0, 255, 0)';
-                // this.main_ctx.fillRect(currentAbscisse*this.zoom-this.pan, y, this.baseInterval-1, lenght);
-                // this.main_ctx.fillRect(currentAbscisse*this.zoom-this.pan, y, (this.baseInterval-1)*this.zoom, lenght);
-                // this.main_ctx.fillRect(this.priceSpace + currentAbscisse*this.zoom, y, (this.baseInterval-1)*this.zoom, lenght); //test
-            }*/
-            // let x = currentAbscisse*this.zoom - this.pan;
+            // ici je vais devoir appeler les function qui permette de crée les indicateur voulu par l'utilisateur
+            // donc:
+                    // externalise the chart,line,bar creation by abscrating them away
+                    // solution? faire un autre file avec les fonction necessaire?
+
+            // test externalisation //
             let x = currentAbscisse - this.pan;
-            if(x >= this.priceSpace) {
-                this.main_ctx.fillStyle = i > 0 && data[i].average < data[i-1].average ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)';
-                this.main_ctx.fillRect(x, y, (this.baseInterval-1)*this.zoom, lenght); //test
+            if(x >= this.X_priceSpace) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
+                this.shapeCreator.creatBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
+                this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
             }
+            // this.shapeCreator.creatBar(this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
+            //////////////////////////
+            // let y = this.Y_upperTextSpace + this.Y_mainSpace * ( 1 - ( (data[i].highest - verticalScales.lowestPrice) / yRange));            
+            // let lenght = this.Y_upperTextSpace + this.Y_mainSpace * ( 1 - ( (data[i].lowest - verticalScales.lowestPrice) / yRange)) - y;            
+            // let interval = this.baseInterval*this.zoom;
+            // this.main_ctx.fillStyle = (i > 0 && data[i].average < data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)';
+            // let x = currentAbscisse - this.pan;
+
+            // if(x >= this.X_priceSpace) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
+            //     this.main_ctx.fillRect(x, y, this.dataGap*this.zoom, lenght); //test
+            // }
+
             nextAbscisse += this.baseInterval;
-            // currentAbscisse += this.baseInterval; //plus tard - pan >> done
             currentAbscisse += currentInterval;
         }
-        // this.nextAbscisse += this.baseInterval;
-        // this.currentAbscisse += this.baseInterval; //plus tard - pan >> done
-        this.lastFrame = this.main_ctx;
-        // this.ctx.stroke();
+
+        this.lastFrame = this.main_ctx; // useless?
     }
 
     setVerticalScale(data: any, start: number, stop: number) { // permet de gerer l'echelle des prix (axes des ordonnée : y) ainsi que l'affichage des prix et aussi pour le volume >> à renommer setScale
@@ -284,7 +301,7 @@ class main {
             this.displayPrices_ctx.beginPath();
             this.displayPrices_ctx.strokeStyle = "rgba(0,0,0,0.4)";
             this.displayPrices_ctx.setLineDash([5, 15]);
-            this.displayPrices_ctx.moveTo(this.width*0.045, y-3.5);
+            this.displayPrices_ctx.moveTo(this.X_priceSpace, y-3.5);
             this.displayPrices_ctx.lineTo(this.width, y-3.5);
             this.displayPrices_ctx.stroke();
             this.displayPrices_ctx.fillStyle = 'rgb(0, 0, 0)';
@@ -322,10 +339,10 @@ class main {
             let delta2 = event.touches[1].clientX / event.touches[1].clientY;
             this.lastDeltaDiff = delta1 > delta2 ? delta1-delta2 : delta2 - delta1;
 
-            let chartWidthOffset: number = ((this.baseInterval-1)*this.zoom)/2;
+            let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
             let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
             let midx = x0 > x1 ? x1 + (x0-x1)/2 : x0 + (x1-x0)/2;
-            this.pinchZoomDataPosition = Math.round(((midx-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + this.pan/interval)
+            this.pinchZoomDataPosition = Math.round(((midx-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval)
 
         } else if (touchNumber === 2 && event.type === 'touchmove') {
             let delta1 = event.touches[0].clientX / event.touches[0].clientY;
@@ -350,25 +367,25 @@ class main {
 
     moveGraph(x: number, y: number) {
         let contenaireRect = document.getElementById("contenaire").getBoundingClientRect();
-        let ajustedHeight: number = this.height*upperTextSpace;
+        // let ajustedHeight: number = this.height*upperTextSpace;
         let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
-        let chartWidthOffset: number = ((this.baseInterval-1)*this.zoom)/2;
-        let dataPosition: number = Math.round(((x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
+        let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
+        let dataPosition: number = Math.round(((x-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
         this.currentDataPosition = dataPosition
         let xCoordonnée: number = interval*dataPosition-this.pan;
         let yCoordonnée: number = y - contenaireRect.top;
         this.cursorDebug.innerHTML = 
-            `<p>interval: ${interval}, priceSpace: ${this.priceSpace}, dataLenght: ${this.dataLength},
-            rawdata: ${(x-contenaireRect.left - this.priceSpace - chartWidthOffset)/interval} : ${this.pan/interval}, dataPosition: ${dataPosition}, xcoordonnée: ${xCoordonnée},
+            `<p>interval: ${interval}, priceSpace: ${this.X_priceSpace}, dataLenght: ${this.dataLength},
+            rawdata: ${(x-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval} : ${this.pan/interval}, dataPosition: ${dataPosition}, xcoordonnée: ${xCoordonnée},
             x: ${x}, y: ${y}, contenaireRect: ${JSON.stringify(contenaireRect)}</p>`
 
         this.cursor_ctx.clearRect(0, 0, this.width, this.height);
-        if(xCoordonnée > 0 && y > ajustedHeight) {
+        if(xCoordonnée > 0 && y > this.Y_upperTextSpace) {
             // console.log(this.height*0.03, y)
             document.body.style.cursor = 'crosshair';
             this.cursor_ctx.fillStyle = 'rgb(255, 0, 0)';
-            this.cursor_ctx.fillRect(xCoordonnée + this.priceSpace + chartWidthOffset, ajustedHeight, 1, this.height); //ligne verticale
-            this.cursor_ctx.fillRect(this.priceSpace, yCoordonnée, this.width, 1); //ligne horizontal
+            this.cursor_ctx.fillRect(xCoordonnée + this.X_priceSpace + chartWidthOffset, this.Y_upperTextSpace, 1, this.height); //ligne verticale
+            this.cursor_ctx.fillRect(this.X_priceSpace, yCoordonnée, this.width, 1); //ligne horizontal
         }
 
         if (dataPosition >= 0 && dataPosition < this.dataLength) {
