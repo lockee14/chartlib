@@ -65,7 +65,7 @@ const mainSpace: number = 0.85;
 const volumeSpace: number = 0.12;
 class main {
     translation = TRANSLATION;
-    defaultOptions = DEFAULTOPTIONS;
+    options = DEFAULTOPTIONS;
     // userInput: any; // useless?
     cursorDebug: any;
     cookieObj: any;
@@ -215,12 +215,20 @@ class main {
     }
 
     displayChart(data: any) {
+        let movAv5d = 0;
+        let movAv20d = 0;
+        let donchian = {
+            lastLow:data[0].lowest,
+            lastLowIndex:0,
+            lastHigh:data[0].highest,
+            lastHighIndex:0
+        }
         // let currentAbscisse: number = 0;
         // let nextAbscisse: number = this.baseInterval;
         let currentAbscisse: number = this.X_priceSpace;
         let currentInterval: number = this.baseInterval * this.zoom;
         // console.log("pricespace:", this.X_priceSpace, "currentAbscisse", currentAbscisse);
-        let nextAbscisse: number = currentAbscisse;
+        let nextAbscisse: number = currentAbscisse + currentInterval;
         let start = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0; // pas encore de pan donc
         // this.pan > 0 ? start = Math.floor(this.user.pan/(this.user.baseInterval*this.user.zoom)) : null;
         start = start > this.dataLength-1 ? this.dataLength-1 : start;
@@ -233,6 +241,13 @@ class main {
         let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         this.main_ctx.clearRect(0, 0, this.width, this.height);
         for(let i = 0; i<this.dataLength; i++) {
+            movAv5d += data[i].average;
+            movAv20d += data[i].average;
+            donchian.lastLow > data[i].lowest ? (donchian.lastLow = data[i].lowest, donchian.lastLowIndex = i) : null;
+            donchian.lastHigh < data[i].highest ? (donchian.lastHigh = data[i].highest, donchian.lastHighIndex = i) : null;
+
+            i >= 5 ? movAv5d -= data[i-5].average : null;
+            i >= 20 ? movAv20d -= data[i-20].average : null;
             // ici je vais devoir appeler les function qui permette de crée les indicateur voulu par l'utilisateur
             // donc:
                     // externalise the chart,line,bar creation by abscrating them away
@@ -241,8 +256,12 @@ class main {
             // test externalisation //
             let x = currentAbscisse - this.pan;
             if(x >= this.X_priceSpace) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
-                this.shapeCreator.creatBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
-                this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
+                // this.shapeCreator.creatBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
+                this.shapeCreator.creatBar(this, x, i, verticalScales);
+                this.shapeCreator.creatVolBar(this, x, i, verticalScales);
+                // this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
+                this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
+
             }
             // this.shapeCreator.creatBar(this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
             //////////////////////////
@@ -256,7 +275,7 @@ class main {
             //     this.main_ctx.fillRect(x, y, this.dataGap*this.zoom, lenght); //test
             // }
 
-            nextAbscisse += this.baseInterval;
+            nextAbscisse += currentInterval;
             currentAbscisse += currentInterval;
         }
 
