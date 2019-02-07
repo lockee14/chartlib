@@ -254,14 +254,22 @@ class main {
                     // solution? faire un autre file avec les fonction necessaire?
 
             // test externalisation //
+            this.main_ctx.globalAlpha = 1;
             let x = currentAbscisse - this.pan;
             if(x >= this.X_priceSpace) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
                 // this.shapeCreator.creatBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
+                this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
+                this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
+                this.shapeCreator.creatMovAv20d(this, x, nextAbscisse - this.pan, movAv20d, verticalScales, i);
+                // this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
+                // func(currentAbscisse-this.user.pan, nextAbscisse-this.user.pan, donchian, price, this.user.heights, data, i, this.dataLength))
                 this.shapeCreator.creatBar(this, x, i, verticalScales);
                 this.shapeCreator.creatVolBar(this, x, i, verticalScales);
-                // this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
-                this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
+                this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
 
+                // this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
+                // this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
+                // this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
             }
             // this.shapeCreator.creatBar(this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
             //////////////////////////
