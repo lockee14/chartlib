@@ -20,7 +20,8 @@
 //          >> oui à corriger
 //             >> j'ai corriger le decalage, en fait displayPrices etait positionné selon this.height et non this.Y_mainSpace
 //          >> reste le problem des point noir >> corriger
-//      -reflechir à commet bien disposer le contenue des options
+//      -reflechir à comment bien disposer le contenue des options
+//      -lorsqu'il y a reset des options aussi reinitialiser le contenue de option space
 
 
 //function that detect if the device is mobile or not
@@ -46,6 +47,8 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
         obj = JSON.parse(xmlhttp.response);
         // initialisation(obj);
         let lang = 'en-us'
+        // let lang = 'ja'
+
         new main(new ShapeCreator, new UserPreferences).init(obj, lang);
       }
   };
@@ -74,12 +77,12 @@ const displayPriceSpace: number = 0.045;
 const mainSpace: number = 0.85;
 const volumeSpace: number = 0.12;
 class main {
-    translation = TRANSLATION;
+    translation: any = TRANSLATION;
     // options = DEFAULTOPTIONS;
     options: any = {};
     openOptionBox: boolean = false;
     // userInput: any; // useless?
-    cursorDebug: any;
+    cursorDebug: HTMLElement;
     cookieObj: any; // useless
     data: any;
     dataLength: number;
@@ -120,8 +123,8 @@ class main {
     currentDataPosition: number = 0;
     pinchZoomDataPosition: number;
     superContenaire: any;
-    contenaire: any;
-    contenaireRect: any; // useless?
+    contenaire: HTMLElement;
+    contenaireRect: any; // useless? >> non utile
     // currentAbscisse: number = 0;
     // nextAbscisse: number = 0;
     
@@ -132,32 +135,18 @@ class main {
         ) {}
 
     init(data: any, lang: string) {
-        // console.log(this.deepCopyObject(DEFAULTOPTIONS));
         this.options = this.deepCopyObject(DEFAULTOPTIONS);
         this.cursorDebug = document.getElementById("cursorDebug");
         this.data = data;
         this.dataLength = data.length;
         this.lang = lang;
         // this.stop = this.dataLength;
-        // this.cookieObj = this.parseCookie();
-        let cookieObj = this.userPreference.parseCookie();
-        // console.log('cookieObj: ', cookieObj)
-        // mettre ce qui suis dans une fonction et le faire plus proprement
-        // this.assignData(cookieObj);
+
+        let cookieObj: any = this.userPreference.parseCookie();
+
         for(let prop in cookieObj.userChartPreference) {
-            let propArray = prop.split('.');
-            // let assignTo = propArray.reduce(this.testassignData, this.options)
-            // assignTo = cookieObj.userChartPreference[prop];
+            let propArray: string[] = prop.split('.');
             this.setObjValue(propArray, cookieObj.userChartPreference[prop], this.options);
-            // if(propArray[2] === 'check') {
-            //     this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
-            // } else {
-            //     if(propArray.length === 3) {
-            //         this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
-            //     } else {
-            //         this.options[propArray[0]][propArray[1]][propArray[2]][propArray[3]] = cookieObj.userChartPreference[prop];
-            //     }
-            // }
         }
         // console.log(this.options)
         // for(let prop in cookieObj.userChartPreference) {
@@ -178,13 +167,11 @@ class main {
         // this.cursorStyle = document.body.style.cursor;
         // this.contenaire = document.getElementById("contenaire"); // ancienne version, privilegié celle ci ou supercontenaire?
         this.contenaire = document.getElementById("supercontenaire");
-        this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless?
+        this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless? >> non je ne pense pas
 
         this.createCanvas();
         this.setSpace();
-        ////// debug ///////
 
-        ////////////////////
         // console.log(data);
         // let width,height,baseInterval,dataLength, userInput, cookieObj, propArray;
         // width = document.getElementById("contenaire").getBoundingClientRect().width;
@@ -252,8 +239,8 @@ class main {
     }
 
     createCanvas() {
-        let allCanvasId = ['upperText_canvas', 'displayPrices_canvas', 'main_canvas', 'cursor_canvas'];
-        let allCanvas = new Array(4);
+        let allCanvasId: string[] = ['upperText_canvas', 'displayPrices_canvas', 'main_canvas', 'cursor_canvas'];
+        let allCanvas: any[] = new Array(4);
         for (let i = 0; i < 4; i++) {
             allCanvas[i] = document.createElement('canvas');
             allCanvas[i].className = 'canvas';
@@ -289,7 +276,7 @@ class main {
         // >> solution faire une marge qui contient la rouge d'option comme dans l'ancienne version?
         // >> ajouter un event click sur this.container qui ne se declenche que si sur l'espace de la roue d'option
         // >> google le problem
-        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        let svg: SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svg.setAttributeNS(null, 'width', '24');
         svg.setAttributeNS(null, 'height', '24');
         svg.setAttributeNS(null, 'id', 'wheelimg');
@@ -300,7 +287,7 @@ class main {
         svg.setAttributeNS(null, 'viewBox', '0 0 24 24');
         svg.setAttributeNS(null, 'z-index', '10');
         // svg.style.zIndex = '10';
-        let newPath = document.createElementNS('http://www.w3.org/2000/svg',"path");
+        let newPath: SVGElement = document.createElementNS('http://www.w3.org/2000/svg',"path");
         newPath.setAttributeNS(null, 'd', 'M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.66-.07-.99l.01.02 2.44-1.92-2.43-4.22-2.87 1.16.01.01c-.52-.4-1.09-.74-1.71-1h.01L14.44 2H9.57l-.44 3.07h.01c-.62.26-1.19.6-1.71 1l.01-.01-2.88-1.17-2.44 4.22 2.44 1.92.01-.02c-.04.33-.07.65-.07.99 0 .34.03.68.08 1.01l-.01-.02-2.1 1.65-.33.26 2.43 4.2 2.88-1.15-.02-.04c.53.41 1.1.75 1.73 1.01h-.03L9.58 22h4.85s.03-.18.06-.42l.38-2.65h-.01c.62-.26 1.2-.6 1.73-1.01l-.02.04 2.88 1.15 2.43-4.2s-.14-.12-.33-.26l-2.11-1.66zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z');
         svg.appendChild(newPath);
         this.optionWheel = svg;
@@ -324,7 +311,7 @@ class main {
         // faire pareil pour l'image >> done
         // chercher l'element canvas et son element parent;
         // mettre le width et height de canvas = width et height de parent element
-        let parent = document.getElementById('supercontenaire');
+        let parent: HTMLElement = document.getElementById('supercontenaire');
         
         // this.baseInterval = parent.clientWidth/this.dataLength;
         this.height = parent.clientHeight;
@@ -335,7 +322,7 @@ class main {
         this.baseInterval = (parent.clientWidth - this.X_priceSpace)/this.dataLength; // with displaypricemarge
         this.dataGap = this.baseInterval - (this.baseInterval/5);
 
-        let optionWheel = document.getElementById('wheelimg');
+        let optionWheel: HTMLElement = document.getElementById('wheelimg');
         optionWheel.style.marginLeft = `${parent.clientWidth-24}px`;
         // optionWheel.addEventListener('click', () => /*{ event.preventDefault();*/ console.log('clicked on optionWheel')/*}*/);
         // this.nextAbscisse = this.baseInterval;
@@ -354,9 +341,9 @@ class main {
     }
 
     displayChart(data: any) {
-        let movAv5d = 0;
-        let movAv20d = 0;
-        let donchian = {
+        let movAv5d: number = 0;
+        let movAv20d: number = 0;
+        let donchian: any = {
             lastLow:data[0].lowest,
             lastLowIndex:0,
             lastHigh:data[0].highest,
@@ -369,16 +356,16 @@ class main {
         let currentInterval: number = this.baseInterval * this.zoom;
         // console.log("pricespace:", this.X_priceSpace, "currentAbscisse", currentAbscisse);
         let nextAbscisse: number = currentAbscisse + currentInterval;
-        let start = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0; // pas encore de pan donc
+        let start: number = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0; // pas encore de pan donc
         // this.pan > 0 ? start = Math.floor(this.user.pan/(this.user.baseInterval*this.user.zoom)) : null;
         start = start > this.dataLength-1 ? this.dataLength-1 : start;
-        let stop = Math.floor(this.width/currentInterval + this.pan/currentInterval); // math.floor? ici ajouté pan >> done
+        let stop: number = Math.floor(this.width/currentInterval + this.pan/currentInterval); // math.floor? ici ajouté pan >> done
         stop = stop > this.dataLength-1 ? this.dataLength-1 : stop;
-        let verticalScales = this.setVerticalScale(data, start, stop);
+        let verticalScales: any = this.setVerticalScale(data, start, stop);
         this.displayPrices(verticalScales);
         // let lowestPrice, highestPrice,lowestVolume, highestVolume;
         // this.ctx.beginPath();
-        let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
+        // let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         this.main_ctx.clearRect(0, 0, this.width, this.height);
         // console.log(this.options)
         for(let i = 0; i<this.dataLength; i++) {
@@ -394,12 +381,12 @@ class main {
                     // externalise the chart,line,bar creation by abscrating them away
                     // solution? faire un autre file avec les fonction necessaire?
             this.main_ctx.globalAlpha = 1;
-            let x = currentAbscisse - this.pan;
+            let x: number = currentAbscisse - this.pan;
             // console.log(this.options.chart.background)
             // test externalisation + option //
             if(x >= this.X_priceSpace && x < this.width) {
                 for(let prop in this.options.chart) {
-                    let colour = this.options.chart[prop].colour
+                    let colour: string = this.options.chart[prop].colour;
                     // console.log(prop, this.options.chart[prop])
                     if(this.options.chart[prop]['exist']) {
                         switch (prop) {
@@ -417,7 +404,7 @@ class main {
                 }
                 for(let prop in this.options.indicator) {
                     // console.log(prop, this.options.indicator[prop])
-                    let colour = this.options.indicator[prop].colour
+                    let colour: string = this.options.indicator[prop].colour
                     if(this.options.indicator[prop]['exist']) {
                         switch (prop) {
                             case 'movingAverage5d':
@@ -469,7 +456,7 @@ class main {
     }
 
     setVerticalScale(data: any, start: number, stop: number) { // permet de gerer l'echelle des prix (axes des ordonnée : y) ainsi que l'affichage des prix et aussi pour le volume >> à renommer setScale
-        let lowestPrice, highestPrice, lowestVolume, highestVolume;
+        let lowestPrice: number, highestPrice: number, lowestVolume: number, highestVolume: number;
         lowestPrice = data[start].lowest;
         highestPrice = data[start].highest;
         lowestVolume = data[start].volume;
@@ -487,10 +474,10 @@ class main {
 
     displayPrices(verticalScales: any) { // dispose les prix 
         // pour que les prix s'ajuste je vais devoir modifier les input de la fonction qui donne l'echelle verticale, car start et stop sont assigné au valeur par default de data >> done
-        let h, w, priceInterval, displayData, y, newText, newLine;
+        let h: number, w: number, priceInterval: number,/* displayData, */y: number; //, newText, newLine;
         h = this.height;
         w = this.width;
-        let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
+        let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         // priceRange = p[1] - p[0]; //ça je le calcul aussi dans vertical
         priceInterval = verticalScales.lowestPrice;
         // displayData = document.getElementById("priceContenaire");
@@ -528,24 +515,24 @@ class main {
             event.type === 'touchmove' ? this.panHandler(event.touches[0]) : this.offset = 0;
             this.moveGraph(event.touches[0].clientX, event.touches[0].clientY);
         } else if (touchNumber === 2 && event.type === 'touchstart') {
-            const x0 = event.touches[0].clientX;
-            const x1 = event.touches[1].clientX;
-            const contenaireRect = document.getElementById("contenaire").getBoundingClientRect();
+            const x0: number = event.touches[0].clientX;
+            const x1: number = event.touches[1].clientX;
+            const contenaireRect: any = document.getElementById("contenaire").getBoundingClientRect();
             
-            let delta1 = event.touches[0].clientX / event.touches[0].clientY;
-            let delta2 = event.touches[1].clientX / event.touches[1].clientY;
+            let delta1: number = event.touches[0].clientX / event.touches[0].clientY;
+            let delta2: number = event.touches[1].clientX / event.touches[1].clientY;
             this.lastDeltaDiff = delta1 > delta2 ? delta1-delta2 : delta2 - delta1;
 
             let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
             let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
-            let midx = x0 > x1 ? x1 + (x0-x1)/2 : x0 + (x1-x0)/2;
+            let midx: number = x0 > x1 ? x1 + (x0-x1)/2 : x0 + (x1-x0)/2;
             this.pinchZoomDataPosition = Math.round(((midx-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval)
 
         } else if (touchNumber === 2 && event.type === 'touchmove') {
-            let delta1 = event.touches[0].clientX / event.touches[0].clientY;
-            let delta2 = event.touches[1].clientX / event.touches[1].clientY;
-            let deltaDiff = delta1 > delta2 ? delta1-delta2 : delta2 - delta1;
-            let lastInterval = this.zoom*this.baseInterval
+            let delta1: number = event.touches[0].clientX / event.touches[0].clientY;
+            let delta2: number = event.touches[1].clientX / event.touches[1].clientY;
+            let deltaDiff: number = delta1 > delta2 ? delta1-delta2 : delta2 - delta1;
+            let lastInterval: number = this.zoom*this.baseInterval
 
             if(deltaDiff > (this.lastDeltaDiff + (this.lastDeltaDiff/15)) && this.zoom < 16) { // avant 16 c'etait 32
                 this.lastDeltaDiff = deltaDiff;
@@ -563,7 +550,7 @@ class main {
     }
 
     moveGraph(x: number, y: number) {
-        let contenaireRect = document.getElementById("contenaire").getBoundingClientRect();
+        let contenaireRect: any = document.getElementById("contenaire").getBoundingClientRect();
         // let ajustedHeight: number = this.height*upperTextSpace;
         let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
         let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
@@ -601,7 +588,7 @@ class main {
         event.preventDefault(); // sert à eviter que la page entière ne scroll
         // this.user.cursorPosition.x = event.clientX; // utiliser ça ou plutot mettre dans mon object d'appel le numero de data dans cursor (dataPosition) et l'utiliser ici avec this.dataPosition    
         ////////// test pour zoom centré ////////////////////
-        let lastInterval = this.zoom*this.baseInterval;
+        let lastInterval: number = this.zoom*this.baseInterval;
         if(event.deltaY < 0 && this.zoom < 16) { // avant 16 c'etait 32
           this.zoom = this.preciseRound((this.zoom*1.2),2);
           this.pan +=  (this.zoom*this.baseInterval - lastInterval)*this.currentDataPosition; //center the zoom on the current cursor position // est-ce une bonne idée de changer pan ici?
@@ -636,7 +623,7 @@ class main {
     }
 
     preciseRound(number: number, precise: number) {
-        let factor = Math.pow(10,precise);
+        let factor: number = Math.pow(10,precise);
         return (Math.round(number*factor)/factor);
     }
     
@@ -662,12 +649,4 @@ class main {
         return result;
     }
 
-    // resetPreference() {
-    //     // le mettre dans user-preferences en lui passant main, appelé main.setSpace() avant main.displayChart pour reset le background color
-    //     this.options = DEFAULTOPTIONS;
-    //     document.cookie = 'userChartPreference=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/';
-    //     this.shapeCreator.changeBackground(this.options.chart.background.colour);
-    //     // this.setSpace();
-    //     this.displayChart(this.data)
-    // }
 };
