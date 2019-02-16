@@ -16,12 +16,9 @@
 
 
 // Bug:
-//      -verifier la representation de mes chart, le point moyen ne s'affiche pas forcement et les plus bas ne correspondent pas? >> done
-//          >> oui à corriger
-//             >> j'ai corriger le decalage, en fait displayPrices etait positionné selon this.height et non this.Y_mainSpace
-//          >> reste le problem des point noir >> corriger
 //      -reflechir à comment bien disposer le contenue des options
 //      -lorsqu'il y a reset des options aussi reinitialiser le contenue de option space
+//          >> rendre la creation de options space plus modulaire pour permettre uniquement la réecriture de du contenue de options space lors d'un reset
 
 
 //function that detect if the device is mobile or not
@@ -71,6 +68,22 @@ import { ShapeCreator } from './shape-creator';
 import { UserPreferences } from './user-preferences';
 import { TRANSLATION } from './translation';
 import { DEFAULTOPTIONS } from './default-options';
+
+interface Data { // data est un array qui contient des object
+    date: string;
+    average: number;
+    highest: number;
+    lowest: number;
+    volume: number;
+    order_count: number;
+}
+
+interface VerticalScales {
+    lowestPrice: number;
+    highestPrice: number;
+    lowestVolume: number;
+    highestVolume: number;
+}
 // declarer ces constantes plus pres de lieu d'utilisation?
 const upperTextSpace: number = 0.03;
 const displayPriceSpace: number = 0.045;
@@ -84,7 +97,7 @@ class main {
     // userInput: any; // useless?
     cursorDebug: HTMLElement;
     cookieObj: any; // useless
-    data: any;
+    data: ReadonlyArray<Data>;
     dataLength: number;
     lang: string;
 
@@ -96,23 +109,24 @@ class main {
     Y_mainSpace: number;
     Y_volumeSpace: number;
     X_priceSpace: number;
+    X_chartSpace: number;
 
     baseInterval: number;
     dataGap: number;
 
-    optionWheel: any;
+    optionWheel: SVGElement;
 
-    upperText_canvas: any;
-    displayPrices_canvas: any;
-    main_canvas: any;
-    cursor_canvas: any;
-    upperText_ctx: any;
-    displayPrices_ctx: any;
-    main_ctx: any;
-    cursor_ctx: any;
+    upperText_canvas: HTMLCanvasElement;
+    displayPrices_canvas: HTMLCanvasElement;
+    main_canvas: HTMLCanvasElement;
+    cursor_canvas: HTMLCanvasElement;
+    upperText_ctx: CanvasRenderingContext2D;
+    displayPrices_ctx: CanvasRenderingContext2D;
+    main_ctx: CanvasRenderingContext2D;
+    cursor_ctx: CanvasRenderingContext2D;
 
     // cursorStyle: any; // useless?
-    lastFrame: any;
+    // lastFrame: any; // useless?
     // start: number = 0; // useless?
     // stop: number; // useless?
     lastDeltaDiff: number;
@@ -148,23 +162,6 @@ class main {
             let propArray: string[] = prop.split('.');
             this.setObjValue(propArray, cookieObj.userChartPreference[prop], this.options);
         }
-        // console.log(this.options)
-        // for(let prop in cookieObj.userChartPreference) {
-        //     console.log('cookieObj prop: ', prop)
-        //     let propArray = prop.split('.');
-        //     console.log(...propArray, this.options[prop])
-        //     if(propArray[2] === 'check') {
-        //         this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
-        //     } else {
-        //         if(propArray.length === 3) {
-        //             this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
-        //         } else {
-        //             this.options[propArray[0]][propArray[1]][propArray[2]][propArray[3]] = cookieObj.userChartPreference[prop];
-        //         }
-        //     }
-        // }
-        /////////////////////////////////////////
-        // this.cursorStyle = document.body.style.cursor;
         // this.contenaire = document.getElementById("contenaire"); // ancienne version, privilegié celle ci ou supercontenaire?
         this.contenaire = document.getElementById("supercontenaire");
         this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless? >> non je ne pense pas
@@ -240,7 +237,7 @@ class main {
 
     createCanvas() {
         let allCanvasId: string[] = ['upperText_canvas', 'displayPrices_canvas', 'main_canvas', 'cursor_canvas'];
-        let allCanvas: any[] = new Array(4);
+        let allCanvas: HTMLCanvasElement[] = new Array(4);
         for (let i = 0; i < 4; i++) {
             allCanvas[i] = document.createElement('canvas');
             allCanvas[i].className = 'canvas';
@@ -250,24 +247,6 @@ class main {
 
             allCanvas[i].id = allCanvasId[i]
             this[allCanvasId[i]] = allCanvas[i];
-            // switch (i) {
-            //     case 0:
-            //         allCanvas[i].id = 'upperText_canvas';
-            //         this.upperText_canvas = allCanvas[i];
-            //         break;
-            //     case 1:
-            //         allCanvas[i].id = 'displayPrices_canvas';
-            //         this.displayPrices_canvas = allCanvas[i];
-            //         break;
-            //     case 2:
-            //         allCanvas[i].id = 'main_canvas';
-            //         this.main_canvas = allCanvas[i];
-            //         break;
-            //     case 3:
-            //         allCanvas[i].id = 'cursor_canvas';
-            //         this.cursor_canvas = allCanvas[i];
-            //         break;
-            // }
             this.contenaire.appendChild(allCanvas[i])
         }
         /*************test roue d'option en svg***************/
@@ -287,7 +266,7 @@ class main {
         svg.setAttributeNS(null, 'viewBox', '0 0 24 24');
         svg.setAttributeNS(null, 'z-index', '10');
         // svg.style.zIndex = '10';
-        let newPath: SVGElement = document.createElementNS('http://www.w3.org/2000/svg',"path");
+        let newPath: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg',"path");
         newPath.setAttributeNS(null, 'd', 'M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.66-.07-.99l.01.02 2.44-1.92-2.43-4.22-2.87 1.16.01.01c-.52-.4-1.09-.74-1.71-1h.01L14.44 2H9.57l-.44 3.07h.01c-.62.26-1.19.6-1.71 1l.01-.01-2.88-1.17-2.44 4.22 2.44 1.92.01-.02c-.04.33-.07.65-.07.99 0 .34.03.68.08 1.01l-.01-.02-2.1 1.65-.33.26 2.43 4.2 2.88-1.15-.02-.04c.53.41 1.1.75 1.73 1.01h-.03L9.58 22h4.85s.03-.18.06-.42l.38-2.65h-.01c.62-.26 1.2-.6 1.73-1.01l-.02.04 2.88 1.15 2.43-4.2s-.14-.12-.33-.26l-2.11-1.66zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z');
         svg.appendChild(newPath);
         this.optionWheel = svg;
@@ -319,6 +298,7 @@ class main {
         this.Y_mainSpace = this.height*mainSpace;
         this.Y_volumeSpace = this.height*volumeSpace;
         this.X_priceSpace = parent.clientWidth * displayPriceSpace;
+        this.X_chartSpace = parent.clientWidth - parent.clientWidth * displayPriceSpace;
         this.baseInterval = (parent.clientWidth - this.X_priceSpace)/this.dataLength; // with displaypricemarge
         this.dataGap = this.baseInterval - (this.baseInterval/5);
 
@@ -343,11 +323,17 @@ class main {
     displayChart(data: any) {
         let movAv5d: number = 0;
         let movAv20d: number = 0;
-        let donchian: any = {
-            lastLow:data[0].lowest,
-            lastLowIndex:0,
-            lastHigh:data[0].highest,
-            lastHighIndex:0
+        interface Donchian {
+            lastLow: number;
+            lastLowIndex: number;
+            lastHigh: number;
+            lastHighIndex: number;
+        }
+        let donchian: Donchian = {
+            lastLow: data[0].lowest,
+            lastLowIndex: 0,
+            lastHigh: data[0].highest,
+            lastHighIndex: 0
         }
         this.shapeCreator.changeBackground(this.options.chart.background.colour);
         // let currentAbscisse: number = 0;
@@ -361,7 +347,7 @@ class main {
         start = start > this.dataLength-1 ? this.dataLength-1 : start;
         let stop: number = Math.floor(this.width/currentInterval + this.pan/currentInterval); // math.floor? ici ajouté pan >> done
         stop = stop > this.dataLength-1 ? this.dataLength-1 : stop;
-        let verticalScales: any = this.setVerticalScale(data, start, stop);
+        let verticalScales: VerticalScales = this.setVerticalScale(data, start, stop);
         this.displayPrices(verticalScales);
         // let lowestPrice, highestPrice,lowestVolume, highestVolume;
         // this.ctx.beginPath();
@@ -452,7 +438,7 @@ class main {
             currentAbscisse += currentInterval;
         }
 
-        this.lastFrame = this.main_ctx; // useless?
+        // this.lastFrame = this.main_ctx; // useless?
     }
 
     setVerticalScale(data: any, start: number, stop: number) { // permet de gerer l'echelle des prix (axes des ordonnée : y) ainsi que l'affichage des prix et aussi pour le volume >> à renommer setScale
@@ -472,7 +458,7 @@ class main {
         return {lowestPrice: lowestPrice, highestPrice: highestPrice, lowestVolume: lowestVolume, highestVolume: highestVolume}
     }
 
-    displayPrices(verticalScales: any) { // dispose les prix 
+    displayPrices(verticalScales: VerticalScales) { // dispose les prix 
         // pour que les prix s'ajuste je vais devoir modifier les input de la fonction qui donne l'echelle verticale, car start et stop sont assigné au valeur par default de data >> done
         let h: number, w: number, priceInterval: number,/* displayData, */y: number; //, newText, newLine;
         h = this.height;
@@ -577,7 +563,7 @@ class main {
         }
     }
 
-    displayData(currentData: any) {
+    displayData(currentData: Data) {
         this.upperText_ctx.clearRect(0, 0, this.width, this.height);
         this.upperText_ctx.font = "13px sans serif";
         this.upperText_ctx.fillText(`${this.translation['date'][this.lang]}: ${currentData.date}, ${this.translation['average'][this.lang]}: ${currentData.average}, ${this.translation['highest'][this.lang]}: ${currentData.highest}, ${this.translation['lowest'][this.lang]}: ${currentData.lowest}, ${this.translation['volume'][this.lang]}: ${currentData.volume}, ${this.translation['order_count'][this.lang]}: ${currentData.order_count}`,5, 12, this.width - 30); // -30 pour eviter que ça rogne sur la roue des options
@@ -618,8 +604,12 @@ class main {
     }
     
     preventOutOfScreen() { // ça me les brise un peu de faire comme ça... puis-je trouver mieu?// fonctione >> plus ou moins meilleurs solution à trouver
-        this.pan <= -(this.width/2) ? this.pan = -(this.width/2) : null;
-        this.pan >= this.width*this.zoom-this.width/2 ? this.pan = this.width*this.zoom-this.width/2 : null;
+        // this.pan <= -(this.width/2) ? this.pan = -(this.width/2) : null;
+        this.pan = this.pan <= -(this.X_chartSpace/2) ? this.pan = -(this.X_chartSpace/2) : this.pan;
+
+        // this.pan >= this.width*this.zoom-this.width/2 ? this.pan = this.width*this.zoom-this.width/2 : null;
+        this.pan = this.pan >= this.X_chartSpace*this.zoom-this.X_chartSpace/2 ? this.pan = this.X_chartSpace*this.zoom-this.X_chartSpace/2 : this.pan;
+
     }
 
     preciseRound(number: number, precise: number) {
@@ -637,7 +627,7 @@ class main {
       
     }
 
-    deepCopyObject(object: any, result = {}) { // ça a l'air correct, à tester
+    deepCopyObject(object: any, result: any = {}) { // ça a l'air correct, à tester
         for(let prop in object) {
             if(typeof object[prop] === "object") {
                 result[prop] = {};

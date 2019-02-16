@@ -30,8 +30,6 @@ export class ShapeCreator {
         main.main_ctx.fillStyle = colour.average;
         main.main_ctx.globalCompositeOperation='multiply';
         main.main_ctx.fillRect((x+dataGap/2)-1.125, yAv, 2.5, 2.5);
-        // main.main_ctx.fillRect((x+dataGap/2)-1.125, yAv, 5, 5);
-
     }
 
     creatLine(main: any, x1: number, x2: number, verticalScales: any, i: number, colour: string) { // ha corriger zoom pour comprendre >> done, approfondir lire la doc
@@ -89,8 +87,7 @@ export class ShapeCreator {
         main.main_ctx.stroke();
     }
 
-    creatDonchian(main: any, x1: number, x2: number, donchian: any, verticalScales: any, i: number, colour: string) { // ne fonctionne pas bien
-        // let dataGap = main.dataGap*main.zoom;
+    creatDonchian(main: any, x1: number, x2: number, donchian: any, verticalScales: any, i: number, colour: string) {
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number, y2: number ,y3: number ,y4: number ,nextLow: number ,nextHigh: number ,temp: number[];
         main.main_ctx.globalAlpha = 0.3;
