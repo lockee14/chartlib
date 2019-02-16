@@ -9,9 +9,19 @@
 //          -crée un objet contenant les traduction
 //          -appeler les element de mon object en fonction de [context][lang]
 //      -zoom et deplacement pour modible, voir le touch event >> done?
-//      -comment implementer les options?
-//      -comment externaliser la creation des chart/indicateur?
-//      -utiliser un svg material design pour la roue d'option plutot que l'image
+//      -comment implementer les options? >> done
+//      -comment externaliser la creation des chart/indicateur? >> done
+//      -utiliser un svg material design pour la roue d'option plutot que l'image >> done
+//      -faire en sorte que les options soit compatible avec mobile
+
+
+// Bug:
+//      -verifier la representation de mes chart, le point moyen ne s'affiche pas forcement et les plus bas ne correspondent pas? >> done
+//          >> oui à corriger
+//             >> j'ai corriger le decalage, en fait displayPrices etait positionné selon this.height et non this.Y_mainSpace
+//          >> reste le problem des point noir >> corriger
+//      -reflechir à commet bien disposer le contenue des options
+
 
 //function that detect if the device is mobile or not
 // function isMobileDevice() {
@@ -65,10 +75,12 @@ const mainSpace: number = 0.85;
 const volumeSpace: number = 0.12;
 class main {
     translation = TRANSLATION;
-    options = DEFAULTOPTIONS;
+    // options = DEFAULTOPTIONS;
+    options: any = {};
+    openOptionBox: boolean = false;
     // userInput: any; // useless?
     cursorDebug: any;
-    cookieObj: any;
+    cookieObj: any; // useless
     data: any;
     dataLength: number;
     lang: string;
@@ -84,6 +96,8 @@ class main {
 
     baseInterval: number;
     dataGap: number;
+
+    optionWheel: any;
 
     upperText_canvas: any;
     displayPrices_canvas: any;
@@ -105,6 +119,7 @@ class main {
     offset: number = 0;
     currentDataPosition: number = 0;
     pinchZoomDataPosition: number;
+    superContenaire: any;
     contenaire: any;
     contenaireRect: any; // useless?
     // currentAbscisse: number = 0;
@@ -117,14 +132,52 @@ class main {
         ) {}
 
     init(data: any, lang: string) {
+        // console.log(this.deepCopyObject(DEFAULTOPTIONS));
+        this.options = this.deepCopyObject(DEFAULTOPTIONS);
         this.cursorDebug = document.getElementById("cursorDebug");
         this.data = data;
         this.dataLength = data.length;
         this.lang = lang;
         // this.stop = this.dataLength;
-        this.cookieObj = this.parseCookie();
+        // this.cookieObj = this.parseCookie();
+        let cookieObj = this.userPreference.parseCookie();
+        // console.log('cookieObj: ', cookieObj)
+        // mettre ce qui suis dans une fonction et le faire plus proprement
+        // this.assignData(cookieObj);
+        for(let prop in cookieObj.userChartPreference) {
+            let propArray = prop.split('.');
+            // let assignTo = propArray.reduce(this.testassignData, this.options)
+            // assignTo = cookieObj.userChartPreference[prop];
+            this.setObjValue(propArray, cookieObj.userChartPreference[prop], this.options);
+            // if(propArray[2] === 'check') {
+            //     this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
+            // } else {
+            //     if(propArray.length === 3) {
+            //         this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
+            //     } else {
+            //         this.options[propArray[0]][propArray[1]][propArray[2]][propArray[3]] = cookieObj.userChartPreference[prop];
+            //     }
+            // }
+        }
+        // console.log(this.options)
+        // for(let prop in cookieObj.userChartPreference) {
+        //     console.log('cookieObj prop: ', prop)
+        //     let propArray = prop.split('.');
+        //     console.log(...propArray, this.options[prop])
+        //     if(propArray[2] === 'check') {
+        //         this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
+        //     } else {
+        //         if(propArray.length === 3) {
+        //             this.options[propArray[0]][propArray[1]][propArray[2]] = cookieObj.userChartPreference[prop];
+        //         } else {
+        //             this.options[propArray[0]][propArray[1]][propArray[2]][propArray[3]] = cookieObj.userChartPreference[prop];
+        //         }
+        //     }
+        // }
+        /////////////////////////////////////////
         // this.cursorStyle = document.body.style.cursor;
-        this.contenaire = document.getElementById("contenaire");
+        // this.contenaire = document.getElementById("contenaire"); // ancienne version, privilegié celle ci ou supercontenaire?
+        this.contenaire = document.getElementById("supercontenaire");
         this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless?
 
         this.createCanvas();
@@ -132,7 +185,7 @@ class main {
         ////// debug ///////
 
         ////////////////////
-        console.log(data);
+        // console.log(data);
         // let width,height,baseInterval,dataLength, userInput, cookieObj, propArray;
         // width = document.getElementById("contenaire").getBoundingClientRect().width;
         // height = document.getElementById("supercontenaire").clientHeight;
@@ -147,38 +200,119 @@ class main {
         // console.log(pulu);
         //// fin du test
         // scope.setTimeout(fonction[, delai, param1, param2, ...]);
-        this.contenaire.addEventListener("mousemove", (event: MouseEvent) => this.handleCursor(event));
-        this.contenaire.addEventListener("touchstart", (event: TouchEvent) => this.handleTouch(event))
-        this.contenaire.addEventListener("wheel", (event: WheelEvent) => this.wheelHandler(event));
-        this.contenaire.addEventListener("mousedown", () => this.click = this.click ? false : true);
-        this.contenaire.addEventListener("mouseup", () => this.click = true ?  false : true);
-        this.contenaire.addEventListener("mouseleave",() => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
-        this.contenaire.addEventListener("touchmove", (event: TouchEvent) => this.handleTouch(event));
-        // this.contenaire.addEventListener("touchend", (event: TouchEvent) => this.handleTouch(event))
-        // this.contenaire.addEventListener("touchcancel", (event: TouchEvent) => this.handleTouch(event))
-        // document.getElementById("wheelimg").addEventListener("mousedown", function funcRef (event) { event.preventDefault(); userInput.setOptionSpace(event, funcRef, userInput)});
-        
+        this.contenaire.addEventListener('mousemove', (event: MouseEvent) => this.handleCursor(event));
+        this.contenaire.addEventListener('touchstart', (event: TouchEvent) => this.handleTouch(event))
+        this.contenaire.addEventListener('wheel', (event: WheelEvent) => this.wheelHandler(event));
+        this.contenaire.addEventListener('mousedown', () => this.click = this.click ? false : true);
+        this.contenaire.addEventListener('mouseup', () => this.click = true ?  false : true);
+        this.contenaire.addEventListener('mouseleave',() => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
+        this.contenaire.addEventListener('touchmove', (event: TouchEvent) => this.handleTouch(event));
+        // this.contenaire.addEventListener('touchend', (event: TouchEvent) => this.handleTouch(event))
+        // this.contenaire.addEventListener('touchcancel', (event: TouchEvent) => this.handleTouch(event))
+        // document.getElementById('wheelimg').addEventListener('mousedown', function funcRef (event) { event.preventDefault(); userInput.setOptionSpace(event, funcRef, userInput)});
+        document.getElementById('wheelimg').addEventListener('click', (event: MouseEvent) => this.testOption(event));
+        // this.contenaire.addEventListener('click', (event: MouseEvent) => this.testOption(event));
+
         window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
     }
 
+    testOption(event: MouseEvent) { // cette solution fonctionne, le comportement est tres bizar, lorsque je modifie les attribus de mon svg ça position dans le dom change
+        // sinon je peu modifier svg des ça creation pour qu'il s'affiche au bon endroit puis faire mes trucs normalement
+        // ça ne fonctionne pas de la même maniere dans chrome et firefox et sur edge rien ne fonctionne brave fonctionne comme chrome
+        // console.log('clicked on optionWheel', event);
+        this.openOptionBox = this.openOptionBox ? false : true;
+        // console.log('bingo', 'openOptionBox: ', this.openOptionBox)
+        if(this.openOptionBox) {
+            this.userPreference.setOptionSpace(this);
+        } else {
+            this.userPreference.closeOptionSpace();
+        }
+        // if(true) {
+        //     console.log('bingo');
+            // this.optionWheel.setAttribute('visibility', 'hidden')
+            // let i = 0
+            // let t = window.setInterval( () => {
+            //     console.log(this, this.optionWheel);
+            //     i += 36
+            //     this.optionWheel.setAttributeNS(null, 'transform', `rotate(${i})`);
+            // }, 20)
+            // // clearInterval(t);
+            // window.setTimeout( () => {
+            //     // i++
+            //     console.log(t);
+            //     clearInterval(t);
+            //     // console.log(this, i);
+            //     // i++
+            //     // console.log(i)
+            // }, 200);
+        // }
+
+        // function rotate() {
+        // }
+    }
+
     createCanvas() {
-        this.upperText_canvas = document.createElement('canvas');// .setAttribute('id', 'upperText_canvas');
-        this.upperText_canvas.id = 'upperText_canvas';
-        this.upperText_canvas.className = 'canvas';
-        this.displayPrices_canvas = document.createElement('canvas');//.setAttribute('id', 'displayPrices_canvas');
-        this.displayPrices_canvas.id = 'displayPrices_canvas';        
-        this.displayPrices_canvas.className = 'canvas';
-        this.main_canvas = document.createElement('canvas');//.setAttribute('id', 'main_canvas');
-        this.main_canvas.id = 'main_canvas';
-        this.main_canvas.className = 'canvas';
-        this.cursor_canvas = document.createElement('canvas');//.setAttribute('id', 'cursor_canvas');
-        this.cursor_canvas.id = 'cursor_canvas';
-        this.cursor_canvas.className = 'canvas';
-        
-        this.contenaire.appendChild(this.upperText_canvas);
-        this.contenaire.appendChild(this.displayPrices_canvas);
-        this.contenaire.appendChild(this.main_canvas);
-        this.contenaire.appendChild(this.cursor_canvas);
+        let allCanvasId = ['upperText_canvas', 'displayPrices_canvas', 'main_canvas', 'cursor_canvas'];
+        let allCanvas = new Array(4);
+        for (let i = 0; i < 4; i++) {
+            allCanvas[i] = document.createElement('canvas');
+            allCanvas[i].className = 'canvas';
+            allCanvas[i].style.position = 'absolute';
+            allCanvas[i].style.left = '0px';
+            allCanvas[i].style.top = '0px';
+
+            allCanvas[i].id = allCanvasId[i]
+            this[allCanvasId[i]] = allCanvas[i];
+            // switch (i) {
+            //     case 0:
+            //         allCanvas[i].id = 'upperText_canvas';
+            //         this.upperText_canvas = allCanvas[i];
+            //         break;
+            //     case 1:
+            //         allCanvas[i].id = 'displayPrices_canvas';
+            //         this.displayPrices_canvas = allCanvas[i];
+            //         break;
+            //     case 2:
+            //         allCanvas[i].id = 'main_canvas';
+            //         this.main_canvas = allCanvas[i];
+            //         break;
+            //     case 3:
+            //         allCanvas[i].id = 'cursor_canvas';
+            //         this.cursor_canvas = allCanvas[i];
+            //         break;
+            // }
+            this.contenaire.appendChild(allCanvas[i])
+        }
+        /*************test roue d'option en svg***************/
+        // maintenant j'ai un problem avec l'event listener plus haut
+        // >> le problèmes et que mes element canvas couvre mon image svg
+        // >> solution faire une marge qui contient la rouge d'option comme dans l'ancienne version?
+        // >> ajouter un event click sur this.container qui ne se declenche que si sur l'espace de la roue d'option
+        // >> google le problem
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttributeNS(null, 'width', '24');
+        svg.setAttributeNS(null, 'height', '24');
+        svg.setAttributeNS(null, 'id', 'wheelimg');
+        svg.setAttributeNS(null, 'position', 'absolute');
+        // svg.setAttributeNS(null, 'top', '1%');
+        // svg.setAttributeNS(null, 'right', '1%');
+
+        svg.setAttributeNS(null, 'viewBox', '0 0 24 24');
+        svg.setAttributeNS(null, 'z-index', '10');
+        // svg.style.zIndex = '10';
+        let newPath = document.createElementNS('http://www.w3.org/2000/svg',"path");
+        newPath.setAttributeNS(null, 'd', 'M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.66-.07-.99l.01.02 2.44-1.92-2.43-4.22-2.87 1.16.01.01c-.52-.4-1.09-.74-1.71-1h.01L14.44 2H9.57l-.44 3.07h.01c-.62.26-1.19.6-1.71 1l.01-.01-2.88-1.17-2.44 4.22 2.44 1.92.01-.02c-.04.33-.07.65-.07.99 0 .34.03.68.08 1.01l-.01-.02-2.1 1.65-.33.26 2.43 4.2 2.88-1.15-.02-.04c.53.41 1.1.75 1.73 1.01h-.03L9.58 22h4.85s.03-.18.06-.42l.38-2.65h-.01c.62-.26 1.2-.6 1.73-1.01l-.02.04 2.88 1.15 2.43-4.2s-.14-.12-.33-.26l-2.11-1.66zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z');
+        svg.appendChild(newPath);
+        this.optionWheel = svg;
+        // this.contenaire.appendChild(svg);
+        // document.getElementById('supercontenaire').appendChild(svg);
+        this.contenaire.appendChild(svg);
+        this.optionWheel.setAttributeNS(null, 'transform', `rotate(0)`);
+        // this.optionWheel.style.marginLeft = `${this.contenaire.clientWidth-24}px`;
+        // document.getElementById('optionWheel').appendChild(svg);
+
+
+        /***************************************/
 
         this.upperText_ctx = this.upperText_canvas.getContext('2d');
         this.displayPrices_ctx = this.displayPrices_canvas.getContext('2d');
@@ -187,7 +321,7 @@ class main {
     }
     setSpace() {
         // a terme creer les 4 element canvas ici et les inserer dans contenaire >> done 
-        // faire pareil pour l'image
+        // faire pareil pour l'image >> done
         // chercher l'element canvas et son element parent;
         // mettre le width et height de canvas = width et height de parent element
         let parent = document.getElementById('supercontenaire');
@@ -200,7 +334,12 @@ class main {
         this.X_priceSpace = parent.clientWidth * displayPriceSpace;
         this.baseInterval = (parent.clientWidth - this.X_priceSpace)/this.dataLength; // with displaypricemarge
         this.dataGap = this.baseInterval - (this.baseInterval/5);
+
+        let optionWheel = document.getElementById('wheelimg');
+        optionWheel.style.marginLeft = `${parent.clientWidth-24}px`;
+        // optionWheel.addEventListener('click', () => /*{ event.preventDefault();*/ console.log('clicked on optionWheel')/*}*/);
         // this.nextAbscisse = this.baseInterval;
+
         this.upperText_canvas.width = parent.clientWidth;
         this.upperText_canvas.height = parent.clientHeight;
         this.displayPrices_canvas.width = parent.clientWidth;
@@ -223,6 +362,7 @@ class main {
             lastHigh:data[0].highest,
             lastHighIndex:0
         }
+        this.shapeCreator.changeBackground(this.options.chart.background.colour);
         // let currentAbscisse: number = 0;
         // let nextAbscisse: number = this.baseInterval;
         let currentAbscisse: number = this.X_priceSpace;
@@ -240,6 +380,7 @@ class main {
         // this.ctx.beginPath();
         let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         this.main_ctx.clearRect(0, 0, this.width, this.height);
+        // console.log(this.options)
         for(let i = 0; i<this.dataLength; i++) {
             movAv5d += data[i].average;
             movAv20d += data[i].average;
@@ -252,25 +393,62 @@ class main {
             // donc:
                     // externalise the chart,line,bar creation by abscrating them away
                     // solution? faire un autre file avec les fonction necessaire?
-
-            // test externalisation //
             this.main_ctx.globalAlpha = 1;
             let x = currentAbscisse - this.pan;
-            if(x >= this.X_priceSpace) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
-                // this.shapeCreator.creatBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
-                this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
-                this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
-                this.shapeCreator.creatMovAv20d(this, x, nextAbscisse - this.pan, movAv20d, verticalScales, i);
-                // this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
-                // func(currentAbscisse-this.user.pan, nextAbscisse-this.user.pan, donchian, price, this.user.heights, data, i, this.dataLength))
-                this.shapeCreator.creatBar(this, x, i, verticalScales);
-                this.shapeCreator.creatVolBar(this, x, i, verticalScales);
-                this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
-
-                // this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
-                // this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
-                // this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
+            // console.log(this.options.chart.background)
+            // test externalisation + option //
+            if(x >= this.X_priceSpace && x < this.width) {
+                for(let prop in this.options.chart) {
+                    let colour = this.options.chart[prop].colour
+                    // console.log(prop, this.options.chart[prop])
+                    if(this.options.chart[prop]['exist']) {
+                        switch (prop) {
+                            case 'line':
+                                this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i, colour);
+                                break;
+                            case 'bar':
+                                this.shapeCreator.creatBar(this, x, verticalScales, i, colour);
+                                break;
+                            case 'volume':
+                                this.shapeCreator.creatVolBar(this, x, verticalScales, i, colour);
+                                break;
+                        }
+                    }
+                }
+                for(let prop in this.options.indicator) {
+                    // console.log(prop, this.options.indicator[prop])
+                    let colour = this.options.indicator[prop].colour
+                    if(this.options.indicator[prop]['exist']) {
+                        switch (prop) {
+                            case 'movingAverage5d':
+                                this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i, colour);
+                                break;
+                            case 'movingAverage20d':
+                                this.shapeCreator.creatMovAv20d(this, x, nextAbscisse - this.pan, movAv20d, verticalScales, i, colour);
+                                break;
+                            case 'donchianChannel':
+                                this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i, colour);
+                                break;
+                        }
+                    }
+                }
             }
+            // test externalisation //
+            // if(x >= this.X_priceSpace && x < this.width) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
+            //     // this.shapeCreator.creatBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
+            //     this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
+            //     this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
+            //     this.shapeCreator.creatMovAv20d(this, x, nextAbscisse - this.pan, movAv20d, verticalScales, i);
+            //     // this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
+            //     // func(currentAbscisse-this.user.pan, nextAbscisse-this.user.pan, donchian, price, this.user.heights, data, i, this.dataLength))
+            //     this.shapeCreator.creatBar(this, x, i, verticalScales);
+            //     this.shapeCreator.creatVolBar(this, x, i, verticalScales);
+            //     this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
+
+            //     // this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
+            //     // this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
+            //     // this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
+            // }
             // this.shapeCreator.creatBar(this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
             //////////////////////////
             // let y = this.Y_upperTextSpace + this.Y_mainSpace * ( 1 - ( (data[i].highest - verticalScales.lowestPrice) / yRange));            
@@ -322,7 +500,7 @@ class main {
             priceInterval += Math.round(yRange/6); // simplement faire ça?
             priceInterval = this.preciseRound(priceInterval, 2);
             // priceInterval += preciseRound(priceRange/6,2);
-            y = h*(1-((priceInterval-verticalScales.lowestPrice)/(yRange))); // encore p[1]-p[0] aka priceRange ça je le calcul aussi dans vertical et juste au dessus
+            y = this.Y_mainSpace*(1-((priceInterval-verticalScales.lowestPrice)/(yRange))); // encore p[1]-p[0] aka priceRange ça je le calcul aussi dans vertical et juste au dessus
             // crée le text
             this.displayPrices_ctx.fillText(priceInterval.toString(), 0, y);
             this.displayPrices_ctx.beginPath();
@@ -334,14 +512,6 @@ class main {
             this.displayPrices_ctx.fillStyle = 'rgb(0, 0, 0)';
             // this.displayPrices_ctx.fillRect(this.width*0.045, this.height/2, 50, 50); // for test purpose
             this.displayPrices_ctx.stroke()
-            //   newText = creatSvgElement("text",{"x":0,"y":y,"class":"priceData"})
-        //   newText.appendChild(document.createTextNode(new Intl.NumberFormat('en-US', { style: 'decimal'}).format(priceInterval.toFixed(0))));
-          // newText.appendChild(document.createTextNode(priceInterval));
-          //crée la ligne // x1:50 et x2:w+50 car il y a 100 de difference entre #supercontenaire et #contenaire
-        //   newLine = creatSvgElement("line",{"x1":50,"x2":(w+50),"y1":y,"y2":y,"class":"priceData","stroke":"black","stroke-dasharray":"5, 5","opacity":"0.2","z-index":5})
-          // ajoute le tout à mon element svg displayData
-        //   displayData.appendChild(newText);
-        //   displayData.appendChild(newLine);
         }
     }
 
@@ -423,7 +593,7 @@ class main {
     displayData(currentData: any) {
         this.upperText_ctx.clearRect(0, 0, this.width, this.height);
         this.upperText_ctx.font = "13px sans serif";
-        this.upperText_ctx.fillText(`${this.translation['date'][this.lang]}: ${currentData.date}, ${this.translation['average'][this.lang]}: ${currentData.average}, ${this.translation['highest'][this.lang]}: ${currentData.highest}, ${this.translation['lowest'][this.lang]}: ${currentData.lowest}, ${this.translation['volume'][this.lang]}: ${currentData.volume}, ${this.translation['order_count'][this.lang]}: ${currentData.order_count}`,5, 12, this.width);
+        this.upperText_ctx.fillText(`${this.translation['date'][this.lang]}: ${currentData.date}, ${this.translation['average'][this.lang]}: ${currentData.average}, ${this.translation['highest'][this.lang]}: ${currentData.highest}, ${this.translation['lowest'][this.lang]}: ${currentData.lowest}, ${this.translation['volume'][this.lang]}: ${currentData.volume}, ${this.translation['order_count'][this.lang]}: ${currentData.order_count}`,5, 12, this.width - 30); // -30 pour eviter que ça rogne sur la roue des options
         // this.upperText_ctx.fillText(`date: ${currentData.date}, average: ${currentData.average}, highest: ${currentData.highest}, lowest: ${currentData.lowest}, volume: ${currentData.volume}, order count: ${currentData.order_count}`, 5, 12, this.width);
     }
 
@@ -443,8 +613,6 @@ class main {
         /////////test preventOutOfScreen///////////
         this.preventOutOfScreen();
         /////////test ///////////
-        // document.getElementById("displayChart").innerHTML = ""; // vide displaychart
-        // document.getElementById("priceContenaire").innerHTML = ""; // vide priceContenaire
         this.displayChart(this.data);
     }
 
@@ -472,21 +640,34 @@ class main {
         return (Math.round(number*factor)/factor);
     }
     
-    parseCookie() {
-        let cookieObj: any = {};
-        const allCookie = document.cookie;
-        // console.log('allCookie:', allCookie)
-        const cookieArray = allCookie.split('; ');
-        // console.log('cookieArray:', cookieArray);
-        const cookieArrayLength = cookieArray.length;
-        // let cookie;
-        for (let i = 0; i < cookieArrayLength; i++) {
-          const cookie: string[] = cookieArray[i].split('=');
-          // console.log('cookie:',cookie);
-          cookie[0] === "userChartPreference" ? cookieObj[cookie[0]] = JSON.parse(cookie[1]) : null;
-          // cookie[0] === "" && cookie[1] === undefined ? null : cookieObj[cookie[0]] = JSON.parse(cookie[1]);
+    setObjValue = (propArray: any, value: any, obj: any) => {
+        if (propArray.length > 1) {
+            return (obj && obj[propArray[0]]) ? this.setObjValue(propArray.slice(1), value, obj[propArray[0]]) : undefined;
+        } else {
+            obj[propArray[0]] = value;
+            return true;
         }
-        return cookieObj;
+      
     }
 
+    deepCopyObject(object: any, result = {}) { // ça a l'air correct, à tester
+        for(let prop in object) {
+            if(typeof object[prop] === "object") {
+                result[prop] = {};
+                this.deepCopyObject(object[prop], result[prop]);
+            } else {
+                result[prop] = object[prop];
+            }
+        }
+        return result;
+    }
+
+    // resetPreference() {
+    //     // le mettre dans user-preferences en lui passant main, appelé main.setSpace() avant main.displayChart pour reset le background color
+    //     this.options = DEFAULTOPTIONS;
+    //     document.cookie = 'userChartPreference=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/';
+    //     this.shapeCreator.changeBackground(this.options.chart.background.colour);
+    //     // this.setSpace();
+    //     this.displayChart(this.data)
+    // }
 };

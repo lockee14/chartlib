@@ -2,39 +2,43 @@ export class ShapeCreator {
 
     constructor() {}
 
-    // changeBackground (value: string) {
-    //     // let supercontenaire = document.getElementById("supercontenaire");
-    //     // supercontenaire.style["background-color"] = value ;
-    //     document.getElementById("supercontenaire").style['background-color'] = value;
-    // }
+    changeBackground (value: string) {
+        // let supercontenaire = document.getElementById("supercontenaire");
+        // supercontenaire.style["background-color"] = value ;
+        document.getElementById("supercontenaire").style['background-color'] = value;
+    }
 
-    creatVolBar (main: any, X:number, i: number, verticalScales:any) {    
+    creatVolBar (main: any, X:number, verticalScales:any, i: number, colour: string) {    
     // creatVolBar (main_ctx: any, dataGap: number, X:number, Y_volumeSpace: number, h: number, data: any, i: number, verticalScales:any) {
         let dataGap = main.dataGap*main.zoom;
         let h = main.Y_mainSpace + main.Y_upperTextSpace
         let yRange = verticalScales.highestVolume - verticalScales.lowestVolume;
         let  y = h + 5 + main.Y_volumeSpace * ( 1 - ( (main.data[i].volume - verticalScales.lowestVolume) / yRange)); // + 5 pour que volume ne touche jamais les chart bar
         let length = main.Y_volumeSpace;
-        main.main_ctx.fillStyle = '#007491' 
+        main.main_ctx.fillStyle = colour 
         main.main_ctx.fillRect(X, y, dataGap, length);
     }
 
-    creatBar(main: any, x:number, i: number, verticalScales:any) {
+    creatBar(main: any, x:number, verticalScales:any, i: number, colour: any) {
         let dataGap = main.dataGap*main.zoom
         let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].highest - verticalScales.lowestPrice) / yRange));            
         let lenght = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].lowest - verticalScales.lowestPrice) / yRange)) - y;
         main.main_ctx.globalCompositeOperation='destination-over';
-        main.main_ctx.fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)';
+        // main.main_ctx.fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)';
+        main.main_ctx.fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? colour.lower : colour.higher;        
         main.main_ctx.fillRect(x, y, dataGap, lenght);
         // for average point, hmm faire une crois plutot ça rendra mieu (genre +)
         let yAv = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].average - verticalScales.lowestPrice) / yRange));
-        main.main_ctx.fillStyle = 'black';
+        main.main_ctx.fillStyle = colour.average;
+        main.main_ctx.globalCompositeOperation='multiply';
         main.main_ctx.fillRect((x+dataGap/2)-1.125, yAv, 2.5, 2.5);
+        // main.main_ctx.fillRect((x+dataGap/2)-1.125, yAv, 5, 5);
+
     }
 
     // creatLine(x1, x2, price, height, data, i) {
-    creatLine(main: any, x1: number, x2: number, verticalScales: any, i: number) { // ha corriger zoom pour comprendre >> done, approfondir lire la doc
+    creatLine(main: any, x1: number, x2: number, verticalScales: any, i: number, colour: string) { // ha corriger zoom pour comprendre >> done, approfondir lire la doc
         if( i < main.dataLength - 1) {
             let dataGap = main.dataGap*main.zoom
             let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
@@ -42,14 +46,14 @@ export class ShapeCreator {
             let y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i+1].average - verticalScales.lowestPrice) / yRange));
             // main.main_ctx.globalCompositeOperation='multiply';
             main.main_ctx.beginPath();
-            main.main_ctx.strokeStyle = 'black';
+            main.main_ctx.strokeStyle = colour;
             main.main_ctx.moveTo(x1+dataGap/2, y1);
             main.main_ctx.lineTo(x2+dataGap/2, y2);
             main.main_ctx.stroke();
         }
     }
 
-    creatMovAv5d(main: any, x1: number, x2: number, movAv5d: number, verticalScales: any, i: number) {
+    creatMovAv5d(main: any, x1: number, x2: number, movAv5d: number, verticalScales: any, i: number, colour: string) {
         let dataGap = main.dataGap*main.zoom;
         let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1 = 0;
@@ -63,13 +67,13 @@ export class ShapeCreator {
         }
         main.main_ctx.beginPath();
         main.main_ctx.lineWidth = 2;
-        main.main_ctx.strokeStyle = '#20677d';
+        main.main_ctx.strokeStyle = colour;
         main.main_ctx.moveTo(x1+dataGap/2, y1);
         main.main_ctx.lineTo(x2+dataGap/2, y2);
         main.main_ctx.stroke();
     }
     
-    creatMovAv20d(main: any, x1: number, x2: number, movAv20d: number, verticalScales: any, i: number) {
+    creatMovAv20d(main: any, x1: number, x2: number, movAv20d: number, verticalScales: any, i: number, colour: string) {
         let dataGap = main.dataGap*main.zoom;
         let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1 = 0;
@@ -83,13 +87,13 @@ export class ShapeCreator {
         }
         main.main_ctx.beginPath();
         main.main_ctx.lineWidth = 2;
-        main.main_ctx.strokeStyle = '#a87515';
+        main.main_ctx.strokeStyle = colour;
         main.main_ctx.moveTo(x1+dataGap/2, y1);
         main.main_ctx.lineTo(x2+dataGap/2, y2);
         main.main_ctx.stroke();
     }
 
-    creatDonchian(main: any, x1: number, x2: number, donchian: any, verticalScales: any, i: number) { // ne fonctionne pas bien
+    creatDonchian(main: any, x1: number, x2: number, donchian: any, verticalScales: any, i: number, colour: string) { // ne fonctionne pas bien
         // let dataGap = main.dataGap*main.zoom;
         let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1,y2,y3,y4,nextLow,nextHigh,temp;
@@ -103,7 +107,7 @@ export class ShapeCreator {
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
 
-            main.main_ctx.fillStyle = '#2a2a31'
+            main.main_ctx.fillStyle = colour
             main.main_ctx.beginPath();
             main.main_ctx.moveTo(x1, y1);
             main.main_ctx.lineTo(x1, y2);
@@ -130,7 +134,7 @@ export class ShapeCreator {
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
 
-            main.main_ctx.fillStyle = '#2a2a31'
+            main.main_ctx.fillStyle = colour
             main.main_ctx.beginPath();
             main.main_ctx.moveTo(x1, y1);
             main.main_ctx.lineTo(x1, y2);
