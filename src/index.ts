@@ -17,9 +17,9 @@
 
 // Bug:
 //      -reflechir à comment bien disposer le contenue des options
-//      -lorsqu'il y a reset des options aussi reinitialiser le contenue de option space
+//      -lorsqu'il y a reset des options aussi reinitialiser le contenue de option space >> done?
 //          >> rendre la creation de options space plus modulaire pour permettre uniquement la réecriture de du contenue de options space lors d'un reset
-
+//      -l'optionBox ne fonctionne pas sous mobile, et je ne sais vraiment pas pourquoi.....
 
 //function that detect if the device is mobile or not
 // function isMobileDevice() {
@@ -54,22 +54,12 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
 };
 
 
-
-// https://developer.mozilla.org/en-US/docs/Web/API/Touch for mobile touch and drag
-
-// import { test } from './cursor_movement';
-
-// faire attention lors du deplacement du curseur faire des tests
-    // debug curseur car c'est foireux >> done?
-
-// ajouter quelque chose pour le debug
-// import{ Debug } from './debug';
 import { ShapeCreator } from './shape-creator';
 import { UserPreferences } from './user-preferences';
 import { TRANSLATION } from './translation';
 import { DEFAULTOPTIONS } from './default-options';
 
-interface Data { // data est un array qui contient des object
+interface Data {
     date: string;
     average: number;
     highest: number;
@@ -125,10 +115,6 @@ class main {
     main_ctx: CanvasRenderingContext2D;
     cursor_ctx: CanvasRenderingContext2D;
 
-    // cursorStyle: any; // useless?
-    // lastFrame: any; // useless?
-    // start: number = 0; // useless?
-    // stop: number; // useless?
     lastDeltaDiff: number;
     zoom: number = 1;
     click: boolean = false;
@@ -139,13 +125,10 @@ class main {
     superContenaire: any;
     contenaire: HTMLElement;
     contenaireRect: any; // useless? >> non utile
-    // currentAbscisse: number = 0;
-    // nextAbscisse: number = 0;
     
     constructor(
         private shapeCreator: ShapeCreator,
         private userPreference: UserPreferences
-        /*debug: Debug*/
         ) {}
 
     init(data: any, lang: string) {
@@ -168,15 +151,6 @@ class main {
 
         this.createCanvas();
         this.setSpace();
-
-        // console.log(data);
-        // let width,height,baseInterval,dataLength, userInput, cookieObj, propArray;
-        // width = document.getElementById("contenaire").getBoundingClientRect().width;
-        // height = document.getElementById("supercontenaire").clientHeight;
-        // height = document.getElementById("supercontenaire").clientHeight; // faire 2 height un pour le volume un pour le graph 80% graph 15% volume 5% margin-top
-        // this.dataLength = data.length;
-        // this.ctx.fillStyle = 'black';
-        // this.ctx.fillRect(500, 50, 100, 100);
         this.displayChart(data);
         // test pour recuperer la derniere image
         // let pulu: any = document.getElementById("canvas");
@@ -185,7 +159,7 @@ class main {
         //// fin du test
         // scope.setTimeout(fonction[, delai, param1, param2, ...]);
         this.contenaire.addEventListener('mousemove', (event: MouseEvent) => this.handleCursor(event));
-        this.contenaire.addEventListener('touchstart', (event: TouchEvent) => this.handleTouch(event))
+        this.contenaire.addEventListener('touchstart', (event: TouchEvent) => this.handleTouch(event));
         this.contenaire.addEventListener('wheel', (event: WheelEvent) => this.wheelHandler(event));
         this.contenaire.addEventListener('mousedown', () => this.click = this.click ? false : true);
         this.contenaire.addEventListener('mouseup', () => this.click = true ?  false : true);
@@ -194,13 +168,17 @@ class main {
         // this.contenaire.addEventListener('touchend', (event: TouchEvent) => this.handleTouch(event))
         // this.contenaire.addEventListener('touchcancel', (event: TouchEvent) => this.handleTouch(event))
         // document.getElementById('wheelimg').addEventListener('mousedown', function funcRef (event) { event.preventDefault(); userInput.setOptionSpace(event, funcRef, userInput)});
-        document.getElementById('wheelimg').addEventListener('click', (event: MouseEvent) => this.testOption(event));
+        // document.getElementById('wheelimg').addEventListener('click', (event: MouseEvent) => this.testOption(event));
+
+        this.optionWheel.addEventListener('click', (event: MouseEvent) => this.testOption(event));
+        this.optionWheel.addEventListener('touchstart', (event: TouchEvent) => this.testOption(event));
+
         // this.contenaire.addEventListener('click', (event: MouseEvent) => this.testOption(event));
 
         window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
     }
 
-    testOption(event: MouseEvent) { // cette solution fonctionne, le comportement est tres bizar, lorsque je modifie les attribus de mon svg ça position dans le dom change
+    testOption(event: any) { // cette solution fonctionne, le comportement est tres bizar, lorsque je modifie les attribus de mon svg ça position dans le dom change
         // sinon je peu modifier svg des ça creation pour qu'il s'affiche au bon endroit puis faire mes trucs normalement
         // ça ne fonctionne pas de la même maniere dans chrome et firefox et sur edge rien ne fonctionne brave fonctionne comme chrome
         // console.log('clicked on optionWheel', event);
@@ -406,39 +384,9 @@ class main {
                     }
                 }
             }
-            // test externalisation //
-            // if(x >= this.X_priceSpace && x < this.width) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
-            //     // this.shapeCreator.creatBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
-            //     this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
-            //     this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
-            //     this.shapeCreator.creatMovAv20d(this, x, nextAbscisse - this.pan, movAv20d, verticalScales, i);
-            //     // this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
-            //     // func(currentAbscisse-this.user.pan, nextAbscisse-this.user.pan, donchian, price, this.user.heights, data, i, this.dataLength))
-            //     this.shapeCreator.creatBar(this, x, i, verticalScales);
-            //     this.shapeCreator.creatVolBar(this, x, i, verticalScales);
-            //     this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i);
-
-            //     // this.shapeCreator.creatVolBar(this.main_ctx, this.dataGap*this.zoom, x, this.Y_volumeSpace, this.Y_mainSpace + this.Y_upperTextSpace, data, i, verticalScales)
-            //     // this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i);
-            //     // this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i);
-            // }
-            // this.shapeCreator.creatBar(this.Y_upperTextSpace, this.Y_mainSpace, data, i, verticalScales);
-            //////////////////////////
-            // let y = this.Y_upperTextSpace + this.Y_mainSpace * ( 1 - ( (data[i].highest - verticalScales.lowestPrice) / yRange));            
-            // let lenght = this.Y_upperTextSpace + this.Y_mainSpace * ( 1 - ( (data[i].lowest - verticalScales.lowestPrice) / yRange)) - y;            
-            // let interval = this.baseInterval*this.zoom;
-            // this.main_ctx.fillStyle = (i > 0 && data[i].average < data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)';
-            // let x = currentAbscisse - this.pan;
-
-            // if(x >= this.X_priceSpace) {// ici je verifie que l'abscisse (x) et > à celui de l'espace destiner à l'affichage des prix verticaux
-            //     this.main_ctx.fillRect(x, y, this.dataGap*this.zoom, lenght); //test
-            // }
-
             nextAbscisse += currentInterval;
             currentAbscisse += currentInterval;
         }
-
-        // this.lastFrame = this.main_ctx; // useless?
     }
 
     setVerticalScale(data: any, start: number, stop: number) { // permet de gerer l'echelle des prix (axes des ordonnée : y) ainsi que l'affichage des prix et aussi pour le volume >> à renommer setScale
@@ -544,10 +492,11 @@ class main {
         this.currentDataPosition = dataPosition
         let xCoordonnée: number = interval*dataPosition-this.pan;
         let yCoordonnée: number = y - contenaireRect.top;
-        this.cursorDebug.innerHTML = 
-            `<p>interval: ${interval}, priceSpace: ${this.X_priceSpace}, dataLenght: ${this.dataLength},
-            rawdata: ${(x-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval} : ${this.pan/interval}, dataPosition: ${dataPosition}, xcoordonnée: ${xCoordonnée},
-            x: ${x}, y: ${y}, contenaireRect: ${JSON.stringify(contenaireRect)}</p>`
+        // for debugging purpose
+        // this.cursorDebug.innerHTML = 
+        //     `<p>interval: ${interval}, priceSpace: ${this.X_priceSpace}, dataLenght: ${this.dataLength},
+        //     rawdata: ${(x-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval} : ${this.pan/interval}, dataPosition: ${dataPosition}, xcoordonnée: ${xCoordonnée},
+        //     x: ${x}, y: ${y}, contenaireRect: ${JSON.stringify(contenaireRect)}</p>`;
 
         this.cursor_ctx.clearRect(0, 0, this.width, this.height);
         if(xCoordonnée > 0 && y > this.Y_upperTextSpace) {
