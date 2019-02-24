@@ -6,48 +6,62 @@ export class ShapeCreator {
         document.getElementById("supercontenaire").style['background-color'] = value;
     }
 
-    creatVolBar (main: any, X:number, verticalScales:any, i: number, colour: string) {    
+    creatVolBar (main: any, prop: string, x:number, x2: number, verticalScales:any, i: number, colour: any) {   
         let dataGap: number = main.dataGap*main.zoom;
         let h: number = main.Y_mainSpace + main.Y_upperTextSpace;
         let yRange: number = verticalScales.highestVolume - verticalScales.lowestVolume;
         let  y: number = h + 5 + main.Y_volumeSpace * ( 1 - ( (main.data[i].volume - verticalScales.lowestVolume) / yRange)); // + 5 pour que volume ne touche jamais les chart bar
         let length: number = main.Y_volumeSpace;
-        main.main_ctx.fillStyle = colour;
-        main.main_ctx.fillRect(X, y, dataGap, length);
+        main.renderObj[prop].getContext('2d').fillStyle = colour;
+        main.renderObj[prop].getContext('2d').rect(x, y, dataGap, length);
     }
 
-    creatBar(main: any, x:number, verticalScales:any, i: number, colour: any) {
+    creatBar(main: any, prop: string, x:number, x2: number, verticalScales:any, i: number, colour: any) {
         let dataGap: number = main.dataGap*main.zoom;
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].highest - verticalScales.lowestPrice) / yRange));            
-        let lenght: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].lowest - verticalScales.lowestPrice) / yRange)) - y;
-        main.main_ctx.globalCompositeOperation='destination-over';
-        // main.main_ctx.fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)';
-        main.main_ctx.fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? colour.lower : colour.higher;        
-        main.main_ctx.fillRect(x, y, dataGap, lenght);
-        // for average point, hmm faire une crois plutot ça rendra mieu (genre +)
+        let length: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].lowest - verticalScales.lowestPrice) / yRange)) - y;
         let yAv: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].average - verticalScales.lowestPrice) / yRange));
-        main.main_ctx.fillStyle = colour.average;
-        main.main_ctx.globalCompositeOperation='multiply';
-        main.main_ctx.fillRect((x+dataGap/2)-1.125, yAv, 2.5, 2.5);
+        let type = (i > 0 && main.data[i].average < main.data[i-1].average) ? 'lower' : 'higher';
+        // // let type = 'lower';
+        // // console.log(`${prop}${type}`, colour[type])
+        main.renderObj[`${prop}${type}`].getContext('2d').globalCompositeOperation = 'destination-over';
+        main.renderObj[`${prop}${type}`].getContext('2d').fillStyle = colour[type];
+        main.renderObj[`${prop}${type}`].getContext('2d').rect(x, y, dataGap, length);
+        // // main.renderObj[`${prop}${type}`].getContext('2d').globalCompositeOperation='multiply';
+        // // main.renderObj[`${prop}${type}`].getContext('2d').rect((x+dataGap/2)-1.125, yAv, 2.5, 2.5);
+        
+        // main.renderObj['bar'].getContext('2d').globalCompositeOperation='destination-over';
+        // // if(i > 0 && main.data[i].average < main.data[i-1].average) {
+        // //     main.renderObj['bar'].getContext('2d').fillStyle = 'rgb(255, 0, 0)';
+        // // } else {
+        // //     main.renderObj['bar'].getContext('2d').fillStyle = 'rgb(0, 255, 0)';
+        // // }
+        // main.renderObj['bar'].getContext('2d').fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)'; 
+        // // main.main_ctx.fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? colour.lower : colour.higher;       
+        // main.renderObj['bar'].getContext('2d').rect(x, y, dataGap, length);
+        // main.renderObj['bar'].getContext('2d').fillStyle = colour.average;
+        // main.renderObj['bar'].getContext('2d').globalCompositeOperation='multiply';
+        // main.renderObj['bar'].getContext('2d').rect((x+dataGap/2)-1.125, yAv, 2.5, 2.5);
+    }
+    
+    averageDot() {
+
     }
 
-    creatLine(main: any, x1: number, x2: number, verticalScales: any, i: number, colour: string) { // ha corriger zoom pour comprendre >> done, approfondir lire la doc
+    creatLine(main: any, prop: string, x1:number, x2: number, verticalScales:any, i: number, colour: any) { // ha corriger zoom pour comprendre >> done, approfondir lire la doc
         if( i < main.dataLength - 1) {
             let dataGap: number = main.dataGap*main.zoom;
             let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
             let y1: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].average - verticalScales.lowestPrice) / yRange));
             let y2: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i+1].average - verticalScales.lowestPrice) / yRange));
-            // main.main_ctx.globalCompositeOperation='multiply';
-            main.main_ctx.beginPath();
-            main.main_ctx.strokeStyle = colour;
-            main.main_ctx.moveTo(x1+dataGap/2, y1);
-            main.main_ctx.lineTo(x2+dataGap/2, y2);
-            main.main_ctx.stroke();
+            main.renderObj[prop].getContext('2d').strokeStyle = colour;
+            main.renderObj[prop].getContext('2d').moveTo(x1+dataGap/2, y1);
+            main.renderObj[prop].getContext('2d').lineTo(x2+dataGap/2, y2);
         }
     }
 
-    creatMovAv5d(main: any, x1: number, x2: number, movAv5d: number, verticalScales: any, i: number, colour: string) {
+    creatMovAv5d(main: any, prop: string, x1: number, x2: number, movAv5d: number, verticalScales: any, i: number, colour: string) {
         let dataGap: number = main.dataGap*main.zoom;
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number = 0;
@@ -59,15 +73,13 @@ export class ShapeCreator {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d/5) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d + main.data[i + 1].average - main.data[i - 4].average) / 5 ) - verticalScales.lowestPrice) / yRange);
         }
-        main.main_ctx.beginPath();
-        main.main_ctx.lineWidth = 2;
-        main.main_ctx.strokeStyle = colour;
-        main.main_ctx.moveTo(x1+dataGap/2, y1);
-        main.main_ctx.lineTo(x2+dataGap/2, y2);
-        main.main_ctx.stroke();
+        main.renderObj['movingAverage5d'].getContext('2d').lineWidth = 2;
+        main.renderObj['movingAverage5d'].getContext('2d').strokeStyle = colour;
+        main.renderObj['movingAverage5d'].getContext('2d').moveTo(x1+dataGap/2, y1);
+        main.renderObj['movingAverage5d'].getContext('2d').lineTo(x2+dataGap/2, y2);
     }
     
-    creatMovAv20d(main: any, x1: number, x2: number, movAv20d: number, verticalScales: any, i: number, colour: string) {
+    creatMovAv20d(main: any, prop: string, x1: number, x2: number, movAv20d: number, verticalScales: any, i: number, colour: string) {
         let dataGap: number = main.dataGap*main.zoom;
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number = 0;
@@ -79,18 +91,16 @@ export class ShapeCreator {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d/20) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d + main.data[i + 1].average - main.data[i - 19].average) / 20 ) - verticalScales.lowestPrice) / yRange);
         }
-        main.main_ctx.beginPath();
-        main.main_ctx.lineWidth = 2;
-        main.main_ctx.strokeStyle = colour;
-        main.main_ctx.moveTo(x1+dataGap/2, y1);
-        main.main_ctx.lineTo(x2+dataGap/2, y2);
-        main.main_ctx.stroke();
+        main.renderObj['movingAverage20d'].getContext('2d').lineWidth = 2;
+        main.renderObj['movingAverage20d'].getContext('2d').strokeStyle = colour;
+        main.renderObj['movingAverage20d'].getContext('2d').moveTo(x1+dataGap/2, y1);
+        main.renderObj['movingAverage20d'].getContext('2d').lineTo(x2+dataGap/2, y2);
     }
 
-    creatDonchian(main: any, x1: number, x2: number, donchian: any, verticalScales: any, i: number, colour: string) {
+    creatDonchian(main: any, prop: string, x1: number, x2: number, donchian: any, verticalScales: any, i: number, colour: string) {
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number, y2: number ,y3: number ,y4: number ,nextLow: number ,nextHigh: number ,temp: number[];
-        main.main_ctx.globalAlpha = 0.3;
+        main.renderObj['donchianChannel'].getContext('2d').globalAlpha = 0.3;
         if (i<=4) {
             main.data[i+1].lowest < donchian.lastLow ? nextLow = main.data[i+1].lowest : nextLow = donchian.lastLow;
             main.data[i+1].highest > donchian.lastHigh ? nextHigh = main.data[i+1].highest : nextHigh = donchian.lastHigh;
@@ -100,14 +110,11 @@ export class ShapeCreator {
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
 
-            main.main_ctx.fillStyle = colour;
-            main.main_ctx.beginPath();
-            main.main_ctx.moveTo(x1, y1);
-            main.main_ctx.lineTo(x1, y2);
-            main.main_ctx.lineTo(x2, y4);
-            main.main_ctx.lineTo(x2, y3);
-            main.main_ctx.closePath();
-            main.main_ctx.fill();
+            main.renderObj['donchianChannel'].getContext('2d').fillStyle = colour;
+            main.renderObj['donchianChannel'].getContext('2d').moveTo(x1, y1);
+            main.renderObj['donchianChannel'].getContext('2d').lineTo(x1, y2);
+            main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y4);
+            main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y3);
         } else if (i < main.dataLength-1) {
             if ((i - donchian.lastLowIndex) > 4) { 
                   temp = findPic('low', main.data, i); 
@@ -127,15 +134,11 @@ export class ShapeCreator {
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
 
-            main.main_ctx.fillStyle = colour;
-            main.main_ctx.beginPath();
-            main.main_ctx.moveTo(x1, y1);
-            main.main_ctx.lineTo(x1, y2);
-            main.main_ctx.lineTo(x2, y4);
-            main.main_ctx.lineTo(x2, y3);
-
-            main.main_ctx.closePath();
-            main.main_ctx.fill();
+            main.renderObj['donchianChannel'].getContext('2d').fillStyle = colour;
+            main.renderObj['donchianChannel'].getContext('2d').moveTo(x1, y1);
+            main.renderObj['donchianChannel'].getContext('2d').lineTo(x1, y2);
+            main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y4);
+            main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y3);
         }
       
         function findPic(type: string, data: any, i: number) {

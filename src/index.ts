@@ -20,6 +20,10 @@
 //      -lorsqu'il y a reset des options aussi reinitialiser le contenue de option space >> done?
 //          >> rendre la creation de options space plus modulaire pour permettre uniquement la réecriture de du contenue de options space lors d'un reset
 //      -l'optionBox ne fonctionne pas sous mobile, et je ne sais vraiment pas pourquoi.....
+//      - le faire sous canvas est tres lent sous firefox et edge >> le laisser en svg avec le portage mobile?
+//          >> non, firefox et edge n'aime pas que je passe une reference à main dans une autres classe (this)
+//              >> en fait non, mon usage de canvas est très mal optimiser
+//              >> comment l'optimiser? pres rendre chacun des element qui va integrer mon canvas, ne faire qu'un render par element
 
 //function that detect if the device is mobile or not
 // function isMobileDevice() {
@@ -54,7 +58,7 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
 };
 
 
-import { ShapeCreator } from './shape-creator';
+import { ShapeCreator } from './shape-creator'; // unfortunatly externalizing this is very slow with firefox and edge
 import { UserPreferences } from './user-preferences';
 import { TRANSLATION } from './translation';
 import { DEFAULTOPTIONS } from './default-options';
@@ -115,6 +119,8 @@ class main {
     main_ctx: CanvasRenderingContext2D;
     cursor_ctx: CanvasRenderingContext2D;
 
+    renderObj: any = {};
+
     lastDeltaDiff: number;
     zoom: number = 1;
     click: boolean = false;
@@ -147,10 +153,11 @@ class main {
         }
         // this.contenaire = document.getElementById("contenaire"); // ancienne version, privilegié celle ci ou supercontenaire?
         this.contenaire = document.getElementById("supercontenaire");
-        this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless? >> non je ne pense pas
+        // this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless? >> non je ne pense pas
 
         this.createCanvas();
         this.setSpace();
+        this.preRender();
         this.displayChart(data);
         // test pour recuperer la derniere image
         // let pulu: any = document.getElementById("canvas");
@@ -263,13 +270,43 @@ class main {
         this.main_ctx = this.main_canvas.getContext('2d');
         this.cursor_ctx = this.cursor_canvas.getContext('2d');
     }
+
+    preRender() {
+        for(let prop in this.options.chart) {
+            if(prop === 'background') {
+                continue;
+            } else if(prop === 'bar') {
+                for (let colour in this.options.chart[prop].colour) {
+                    // console.log(prop, colour);
+                    let canvas = document.createElement('canvas');
+                    canvas.width = this.width;
+                    canvas.height = this.height;
+                    this.renderObj[`${prop}${colour}`] = canvas;
+                }
+            } else {
+                let canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                this.renderObj[prop] = canvas;
+            }
+        }
+        for(let prop in this.options.indicator) {
+            let canvas = document.createElement('canvas');
+            canvas.width = this.width;
+            canvas.height = this.height;
+            this.renderObj[prop] = canvas;
+        }
+    }
+
     setSpace() {
         // a terme creer les 4 element canvas ici et les inserer dans contenaire >> done 
         // faire pareil pour l'image >> done
         // chercher l'element canvas et son element parent;
         // mettre le width et height de canvas = width et height de parent element
+        // this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless? >> non je ne pense pas
+
         let parent: HTMLElement = document.getElementById('supercontenaire');
-        
+        this.contenaireRect = parent.getBoundingClientRect();
         // this.baseInterval = parent.clientWidth/this.dataLength;
         this.height = parent.clientHeight;
         this.Y_upperTextSpace = this.height*upperTextSpace;
@@ -313,25 +350,27 @@ class main {
             lastHigh: data[0].highest,
             lastHighIndex: 0
         }
-        this.shapeCreator.changeBackground(this.options.chart.background.colour);
-        // let currentAbscisse: number = 0;
-        // let nextAbscisse: number = this.baseInterval;
+        this.shapeCreator.changeBackground(this.options.chart.background.colour); // pourquoi ici? ne l'appeler qu'apres l'init ou si changement
+
         let currentAbscisse: number = this.X_priceSpace;
         let currentInterval: number = this.baseInterval * this.zoom;
-        // console.log("pricespace:", this.X_priceSpace, "currentAbscisse", currentAbscisse);
         let nextAbscisse: number = currentAbscisse + currentInterval;
+
         let start: number = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0; // pas encore de pan donc
-        // this.pan > 0 ? start = Math.floor(this.user.pan/(this.user.baseInterval*this.user.zoom)) : null;
         start = start > this.dataLength-1 ? this.dataLength-1 : start;
         let stop: number = Math.floor(this.width/currentInterval + this.pan/currentInterval); // math.floor? ici ajouté pan >> done
         stop = stop > this.dataLength-1 ? this.dataLength-1 : stop;
+
         let verticalScales: VerticalScales = this.setVerticalScale(data, start, stop);
         this.displayPrices(verticalScales);
-        // let lowestPrice, highestPrice,lowestVolume, highestVolume;
-        // this.ctx.beginPath();
-        // let yRange = verticalScales.highestPrice - verticalScales.lowestPrice;
+        
+        for(let prop in this.renderObj) {
+            this.renderObj[prop].getContext('2d').clearRect(0, 0, this.width, this.height);
+            this.renderObj[prop].getContext('2d').beginPath();
+        }
+
         this.main_ctx.clearRect(0, 0, this.width, this.height);
-        // console.log(this.options)
+        this.main_ctx.beginPath();
         for(let i = 0; i<this.dataLength; i++) {
             movAv5d += data[i].average;
             movAv20d += data[i].average;
@@ -340,52 +379,48 @@ class main {
 
             i >= 5 ? movAv5d -= data[i-5].average : null;
             i >= 20 ? movAv20d -= data[i-20].average : null;
-            // ici je vais devoir appeler les function qui permette de crée les indicateur voulu par l'utilisateur
-            // donc:
-                    // externalise the chart,line,bar creation by abscrating them away
-                    // solution? faire un autre file avec les fonction necessaire?
+
             this.main_ctx.globalAlpha = 1;
+            let indicatorParam: any = {
+                movingAverage5d: movAv5d,
+                movingAverage20d: movAv20d,
+                donchianChannel: donchian
+            }
             let x: number = currentAbscisse - this.pan;
-            // console.log(this.options.chart.background)
-            // test externalisation + option //
+            let x2: number = nextAbscisse - this.pan;
+            
             if(x >= this.X_priceSpace && x < this.width) {
                 for(let prop in this.options.chart) {
-                    let colour: string = this.options.chart[prop].colour;
-                    // console.log(prop, this.options.chart[prop])
-                    if(this.options.chart[prop]['exist']) {
-                        switch (prop) {
-                            case 'line':
-                                this.shapeCreator.creatLine(this, x, nextAbscisse - this.pan, verticalScales, i, colour);
-                                break;
-                            case 'bar':
-                                this.shapeCreator.creatBar(this, x, verticalScales, i, colour);
-                                break;
-                            case 'volume':
-                                this.shapeCreator.creatVolBar(this, x, verticalScales, i, colour);
-                                break;
-                        }
+                    let colour: any = this.options.chart[prop].colour;
+                    if(this.options.chart[prop].hasOwnProperty('func') && this.options.chart[prop]['exist']) {
+                        let func = this.options.chart[prop].func;
+                        this.shapeCreator[func](this, prop, x, x2, verticalScales, i, colour);
                     }
                 }
+
                 for(let prop in this.options.indicator) {
-                    // console.log(prop, this.options.indicator[prop])
-                    let colour: string = this.options.indicator[prop].colour
-                    if(this.options.indicator[prop]['exist']) {
-                        switch (prop) {
-                            case 'movingAverage5d':
-                                this.shapeCreator.creatMovAv5d(this, x, nextAbscisse - this.pan, movAv5d, verticalScales, i, colour);
-                                break;
-                            case 'movingAverage20d':
-                                this.shapeCreator.creatMovAv20d(this, x, nextAbscisse - this.pan, movAv20d, verticalScales, i, colour);
-                                break;
-                            case 'donchianChannel':
-                                this.shapeCreator.creatDonchian(this, x, nextAbscisse - this.pan, donchian, verticalScales, i, colour);
-                                break;
-                        }
+                    let colour: string = this.options.indicator[prop].colour;
+                    if(this.options.indicator[prop].hasOwnProperty('func') && this.options.indicator[prop]['exist']) {
+                        let func = this.options.indicator[prop].func;
+                        this.shapeCreator[func](this, prop, x, x2, indicatorParam[prop], verticalScales, i, colour);
                     }
                 }
             }
             nextAbscisse += currentInterval;
             currentAbscisse += currentInterval;
+        }
+        for(let prop in this.renderObj) {
+            if(prop === 'donchianChannel') {
+                this.renderObj[prop].getContext('2d').closePath();
+                this.renderObj[prop].getContext('2d').fill();
+                this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
+    
+            } else {
+                this.renderObj[prop].getContext('2d').closePath();
+                this.renderObj[prop].getContext('2d').stroke();
+                this.renderObj[prop].getContext('2d').fill();
+                this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
+            }
         }
     }
 
@@ -451,7 +486,7 @@ class main {
         } else if (touchNumber === 2 && event.type === 'touchstart') {
             const x0: number = event.touches[0].clientX;
             const x1: number = event.touches[1].clientX;
-            const contenaireRect: any = document.getElementById("contenaire").getBoundingClientRect();
+            // const contenaireRect: any = document.getElementById("contenaire").getBoundingClientRect();
             
             let delta1: number = event.touches[0].clientX / event.touches[0].clientY;
             let delta2: number = event.touches[1].clientX / event.touches[1].clientY;
@@ -460,7 +495,7 @@ class main {
             let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
             let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
             let midx: number = x0 > x1 ? x1 + (x0-x1)/2 : x0 + (x1-x0)/2;
-            this.pinchZoomDataPosition = Math.round(((midx-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval)
+            this.pinchZoomDataPosition = Math.round(((midx-this.contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval)
 
         } else if (touchNumber === 2 && event.type === 'touchmove') {
             let delta1: number = event.touches[0].clientX / event.touches[0].clientY;
@@ -488,10 +523,12 @@ class main {
         // let ajustedHeight: number = this.height*upperTextSpace;
         let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
         let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
-        let dataPosition: number = Math.round(((x-contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
+        let dataPosition: number = Math.round(((x-this.contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
         this.currentDataPosition = dataPosition
         let xCoordonnée: number = interval*dataPosition-this.pan;
+        // let yCoordonnée: number = y - this.contenaireRect.top;
         let yCoordonnée: number = y - contenaireRect.top;
+
         // for debugging purpose
         // this.cursorDebug.innerHTML = 
         //     `<p>interval: ${interval}, priceSpace: ${this.X_priceSpace}, dataLenght: ${this.dataLength},
