@@ -16,6 +16,7 @@
 
 
 // Bug:
+//      -affichage du volume, je pense qu'il y a un probleme >> à verifier
 //      -reflechir à comment bien disposer le contenue des options
 //      -lorsqu'il y a reset des options aussi reinitialiser le contenue de option space >> done?
 //          >> rendre la creation de options space plus modulaire pour permettre uniquement la réecriture de du contenue de options space lors d'un reset
@@ -277,7 +278,6 @@ class main {
                 continue;
             } else if(prop === 'bar') {
                 for (let colour in this.options.chart[prop].colour) {
-                    // console.log(prop, colour);
                     let canvas = document.createElement('canvas');
                     canvas.width = this.width;
                     canvas.height = this.height;
@@ -409,18 +409,38 @@ class main {
             nextAbscisse += currentInterval;
             currentAbscisse += currentInterval;
         }
+        
+        const drawOrder = new Array(Object.keys(this.renderObj).length-1);
+
         for(let prop in this.renderObj) {
             if(prop === 'donchianChannel') {
                 this.renderObj[prop].getContext('2d').closePath();
                 this.renderObj[prop].getContext('2d').fill();
-                this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
+                const order = this.options.indicator[prop].layer;
+                drawOrder[order] = this.renderObj[prop];
+                // this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
     
             } else {
+                if (prop.substr(0,3) === 'bar') {
+                    const order = this.options.chart['bar'].layer;
+                    if (drawOrder[order] === undefined)  {
+                        drawOrder[order] = this.renderObj[prop];
+                    } else {
+                        drawOrder[order+1] = this.renderObj[prop];
+                    }    
+                } else {
+                    const type =  this.options.chart[prop] ? 'chart' : 'indicator';
+                    const order = this.options[type][prop].layer;
+                    drawOrder[order] = this.renderObj[prop];
+                }
                 this.renderObj[prop].getContext('2d').closePath();
                 this.renderObj[prop].getContext('2d').stroke();
                 this.renderObj[prop].getContext('2d').fill();
-                this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
+                // this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
             }
+        }
+        for(let i = 0; i < drawOrder.length; i++) {
+            this.main_ctx.drawImage(drawOrder[i], 0, 0);
         }
     }
 
@@ -443,20 +463,14 @@ class main {
 
     displayPrices(verticalScales: VerticalScales) { // dispose les prix 
         // pour que les prix s'ajuste je vais devoir modifier les input de la fonction qui donne l'echelle verticale, car start et stop sont assigné au valeur par default de data >> done
-        let h: number, w: number, priceInterval: number,/* displayData, */y: number; //, newText, newLine;
-        h = this.height;
-        w = this.width;
-        let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
-        // priceRange = p[1] - p[0]; //ça je le calcul aussi dans vertical
+        let priceInterval: number, y: number; //, newText, newLine;
+        const yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         priceInterval = verticalScales.lowestPrice;
-        // displayData = document.getElementById("priceContenaire");
         this.displayPrices_ctx.clearRect(0, 0, this.width, this.height);
         for(let i=0;i<5;i++) {
-            //priceInterval += preciseRound((priceRange/6),1); // il y a bug prix de type xxxx.xxxxx apparaisse >> pourquoi?
             priceInterval += Math.round(yRange/6); // simplement faire ça?
             priceInterval = this.preciseRound(priceInterval, 2);
-            // priceInterval += preciseRound(priceRange/6,2);
-            y = this.Y_mainSpace*(1-((priceInterval-verticalScales.lowestPrice)/(yRange))); // encore p[1]-p[0] aka priceRange ça je le calcul aussi dans vertical et juste au dessus
+            y = this.Y_upperTextSpace + this.Y_mainSpace*(1-((priceInterval-verticalScales.lowestPrice)/(yRange))); // encore p[1]-p[0] aka priceRange ça je le calcul aussi dans vertical et juste au dessus
             // crée le text
             this.displayPrices_ctx.fillText(priceInterval.toString(), 0, y);
             this.displayPrices_ctx.beginPath();

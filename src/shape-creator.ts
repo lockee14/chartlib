@@ -23,30 +23,17 @@ export class ShapeCreator {
         let length: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].lowest - verticalScales.lowestPrice) / yRange)) - y;
         let yAv: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].average - verticalScales.lowestPrice) / yRange));
         let type = (i > 0 && main.data[i].average < main.data[i-1].average) ? 'lower' : 'higher';
-        // // let type = 'lower';
-        // // console.log(`${prop}${type}`, colour[type])
         main.renderObj[`${prop}${type}`].getContext('2d').globalCompositeOperation = 'destination-over';
         main.renderObj[`${prop}${type}`].getContext('2d').fillStyle = colour[type];
         main.renderObj[`${prop}${type}`].getContext('2d').rect(x, y, dataGap, length);
-        // // main.renderObj[`${prop}${type}`].getContext('2d').globalCompositeOperation='multiply';
-        // // main.renderObj[`${prop}${type}`].getContext('2d').rect((x+dataGap/2)-1.125, yAv, 2.5, 2.5);
-        
-        // main.renderObj['bar'].getContext('2d').globalCompositeOperation='destination-over';
-        // // if(i > 0 && main.data[i].average < main.data[i-1].average) {
-        // //     main.renderObj['bar'].getContext('2d').fillStyle = 'rgb(255, 0, 0)';
-        // // } else {
-        // //     main.renderObj['bar'].getContext('2d').fillStyle = 'rgb(0, 255, 0)';
-        // // }
-        // main.renderObj['bar'].getContext('2d').fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? 'rgb(255, 0, 0)' : 'rgb(0, 255, 0)'; 
-        // // main.main_ctx.fillStyle = (i > 0 && main.data[i].average < main.data[i-1].average) ? colour.lower : colour.higher;       
-        // main.renderObj['bar'].getContext('2d').rect(x, y, dataGap, length);
-        // main.renderObj['bar'].getContext('2d').fillStyle = colour.average;
-        // main.renderObj['bar'].getContext('2d').globalCompositeOperation='multiply';
-        // main.renderObj['bar'].getContext('2d').rect((x+dataGap/2)-1.125, yAv, 2.5, 2.5);
     }
     
-    averageDot() {
-
+    averageDot(main: any, prop: string, x:number, x2: number, verticalScales:any, i: number, colour: string) {
+        let dataGap: number = main.dataGap*main.zoom;
+        let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
+        let yAv: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].average - verticalScales.lowestPrice) / yRange));
+        main.renderObj[`${prop}`].getContext('2d').fillStyle = colour;
+        main.renderObj[`${prop}`].getContext('2d').rect((x+dataGap/2)-1.25, yAv-1.25, 2.5, 2.5);
     }
 
     creatLine(main: any, prop: string, x1:number, x2: number, verticalScales:any, i: number, colour: any) { // ha corriger zoom pour comprendre >> done, approfondir lire la doc
@@ -56,6 +43,7 @@ export class ShapeCreator {
             let y1: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i].average - verticalScales.lowestPrice) / yRange));
             let y2: number = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (main.data[i+1].average - verticalScales.lowestPrice) / yRange));
             main.renderObj[prop].getContext('2d').strokeStyle = colour;
+            main.renderObj[prop].getContext('2d').lineWidth = 2;
             main.renderObj[prop].getContext('2d').moveTo(x1+dataGap/2, y1);
             main.renderObj[prop].getContext('2d').lineTo(x2+dataGap/2, y2);
         }
@@ -110,6 +98,7 @@ export class ShapeCreator {
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
 
+            // main.renderObj['donchianChannel'].getContext('2d').globalCompositeOperation = 'source-out';
             main.renderObj['donchianChannel'].getContext('2d').fillStyle = colour;
             main.renderObj['donchianChannel'].getContext('2d').moveTo(x1, y1);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x1, y2);
@@ -134,6 +123,7 @@ export class ShapeCreator {
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
 
+            // main.renderObj['donchianChannel'].getContext('2d').globalCompositeOperation = 'source-out';
             main.renderObj['donchianChannel'].getContext('2d').fillStyle = colour;
             main.renderObj['donchianChannel'].getContext('2d').moveTo(x1, y1);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x1, y2);
