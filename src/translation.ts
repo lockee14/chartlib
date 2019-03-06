@@ -8,12 +8,12 @@ export const TRANSLATION: any = {
 		"zh": "平均"
 	},
 	"background": {
-		"de": "Hintergrund",
-		"en-us": "background",
-		"fr": "arrière plan",
-		"ja": "バックグラウンド",
-		"ru": "фон",
-		"zh": "背景"
+		"de": "Hintergrund ",
+		"en-us": "background ",
+		"fr": "arrière plan ",
+		"ja": "バックグラウンド ",
+		"ru": "фон ",
+		"zh": "背景 "
 	},
 	"bar": {
 		"de": "Bar",
@@ -48,12 +48,12 @@ export const TRANSLATION: any = {
 		"zh": "donchian频道"
 	},
 	"high": {
-		"de": "hoch",
-		"en-us": "high",
-		"fr": "haut",
-		"ja": "高い",
-		"ru": "высоко",
-		"zh": "高"
+		"de": "hoch ",
+		"en-us": "high ",
+		"fr": "haut ",
+		"ja": "高い ",
+		"ru": "высоко ",
+		"zh": "高 "
 	},
 	"highest": {
 		"de": "höchste",
@@ -80,12 +80,12 @@ export const TRANSLATION: any = {
 		"zh": "线"
 	},
 	"low": {
-		"de": "niedrig",
-		"en-us": "low",
-		"fr": "bas",
-		"ja": "低い",
-		"ru": "низкий",
-		"zh": "低"
+		"de": "niedrig ",
+		"en-us": "low ",
+		"fr": "bas ",
+		"ja": "低い ",
+		"ru": "низкий ",
+		"zh": "低 "
 	},
 	"lowest": {
 		"de": "niedrigste",

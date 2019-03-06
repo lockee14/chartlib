@@ -131,7 +131,9 @@ export class ShapeCreator {
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y3);
         }
       
-        function findPic(type: string, data: any, i: number) {
+        function findPic(type: string, data: any, i: number) { 
+            // essaie d'optimiser cette fonctione, mes les 5 dernier valeur dans un array, tri le, puis binary search or hearsort
+            // ensuite regarder les performance et voir lequel des 2 algo est le plus rapide
             let temp: number[] = [0,0]; // [value, index]
             if (type === 'low') {
                 temp[0] = data[i-4].lowest;

@@ -1,10 +1,6 @@
-// comment vais je faire?
-// transposer mon code de chartlib vers chartlib_canvas
-// utiliser les import via typescript pour separer mon code en unité logique
-// apprendre à utiliser canvas
+
 // chose à ajouté:
 //      -performance: lors du deplacement du curseur, plutot que de tout redessiner, enregistrer l'etat precedent de mon canva et le reservir avec le mouvement du cursuer (sauf si deplacement dans les chart evidemment)
-//      -prise en charge de la langue, comment faire?: >> done
 //          -en entré une variable fourni par mon apli ex: "en-us"
 //          -crée un objet contenant les traduction
 //          -appeler les element de mon object en fonction de [context][lang]
@@ -12,19 +8,21 @@
 //      -comment implementer les options? >> done
 //      -comment externaliser la creation des chart/indicateur? >> done
 //      -utiliser un svg material design pour la roue d'option plutot que l'image >> done
-//      -faire en sorte que les options soit compatible avec mobile
-
+//      -faire en sorte que les options soit compatible avec mobile >> done
+//      - add a 'click outside of the options box to close it'
 
 // Bug:
 //      -affichage du volume, je pense qu'il y a un probleme >> à verifier
-//      -reflechir à comment bien disposer le contenue des options
-//      -lorsqu'il y a reset des options aussi reinitialiser le contenue de option space >> done?
-//          >> rendre la creation de options space plus modulaire pour permettre uniquement la réecriture de du contenue de options space lors d'un reset
-//      -l'optionBox ne fonctionne pas sous mobile, et je ne sais vraiment pas pourquoi.....
-//      - le faire sous canvas est tres lent sous firefox et edge >> le laisser en svg avec le portage mobile?
-//          >> non, firefox et edge n'aime pas que je passe une reference à main dans une autres classe (this)
-//              >> en fait non, mon usage de canvas est très mal optimiser
-//              >> comment l'optimiser? pres rendre chacun des element qui va integrer mon canvas, ne faire qu'un render par element
+//      -reflechir à comment bien disposer le contenue des options >> done? à tester
+//          >> les options s'affichent tres mal sous mobile
+//      -l'optionBox ne fonctionne pas sous mobile, et je ne sais vraiment pas pourquoi..... >> done
+//          >> ajouter des event 'touch'?, hmmm non si je veux que ça fonctionne il faut ajouter les "input" autrement qu'avec elem.innerHTML = input
+//          >> tester appendChild(inputElem) sur desktop et ça a fonctionné, voir sur mobile
+//          >> oui mais ça ne fonctionne toujours pas dans l'encar d'option, peu etre à cause de l'event listener de handleCursor
+//          >> wép prevent default à l'air de faire chier... 
+//          >> voir event bubbling / event capturing
+//          >> probleme corriger, je crois
+//      -les bar rouge ne s'affichent pas sous mobile >> problemes resolu, mauvais cookie, mettre un truc pour verifier que le cookie soit correct?
 
 //function that detect if the device is mobile or not
 // function isMobileDevice() {
@@ -57,7 +55,14 @@ window.onload = function() { // ici plutot faire click sur submit, recup les req
   xmlhttp.send(null);
 
 };
-
+/////////////////////////////end of the dev env part///////////////////////////////////////
+declare global {
+    interface Window { chartlib_canvas: any; }
+}
+function initialisation(data: Data, lang: string) {
+    new main(new ShapeCreator, new UserPreferences).init(data, lang);
+}
+window.chartlib_canvas = initialisation;
 
 import { ShapeCreator } from './shape-creator'; // unfortunatly externalizing this is very slow with firefox and edge
 import { UserPreferences } from './user-preferences';
@@ -86,10 +91,9 @@ const mainSpace: number = 0.85;
 const volumeSpace: number = 0.12;
 class main {
     translation: any = TRANSLATION;
-    // options = DEFAULTOPTIONS;
     options: any = {};
+    isMobile: boolean = false;
     openOptionBox: boolean = false;
-    // userInput: any; // useless?
     cursorDebug: HTMLElement;
     cookieObj: any; // useless
     data: ReadonlyArray<Data>;
@@ -129,9 +133,8 @@ class main {
     offset: number = 0;
     currentDataPosition: number = 0;
     pinchZoomDataPosition: number;
-    superContenaire: any;
     contenaire: HTMLElement;
-    contenaireRect: any; // useless? >> non utile
+    contenaireRect: any;
     
     constructor(
         private shapeCreator: ShapeCreator,
@@ -144,81 +147,43 @@ class main {
         this.data = data;
         this.dataLength = data.length;
         this.lang = lang;
-        // this.stop = this.dataLength;
-
+        this.isMobile = (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
         let cookieObj: any = this.userPreference.parseCookie();
 
         for(let prop in cookieObj.userChartPreference) {
             let propArray: string[] = prop.split('.');
             this.setObjValue(propArray, cookieObj.userChartPreference[prop], this.options);
         }
-        // this.contenaire = document.getElementById("contenaire"); // ancienne version, privilegié celle ci ou supercontenaire?
         this.contenaire = document.getElementById("supercontenaire");
-        // this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless? >> non je ne pense pas
 
         this.createCanvas();
         this.setSpace();
         this.preRender();
         this.displayChart(data);
-        // test pour recuperer la derniere image
-        // let pulu: any = document.getElementById("canvas");
-        // pulu = pulu.toDataURL()
-        // console.log(pulu);
-        //// fin du test
-        // scope.setTimeout(fonction[, delai, param1, param2, ...]);
+
         this.contenaire.addEventListener('mousemove', (event: MouseEvent) => this.handleCursor(event));
         this.contenaire.addEventListener('touchstart', (event: TouchEvent) => this.handleTouch(event));
+        this.contenaire.addEventListener('touchmove', (event: TouchEvent) => this.handleTouch(event));
+
         this.contenaire.addEventListener('wheel', (event: WheelEvent) => this.wheelHandler(event));
         this.contenaire.addEventListener('mousedown', () => this.click = this.click ? false : true);
         this.contenaire.addEventListener('mouseup', () => this.click = true ?  false : true);
         this.contenaire.addEventListener('mouseleave',() => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
-        this.contenaire.addEventListener('touchmove', (event: TouchEvent) => this.handleTouch(event));
-        // this.contenaire.addEventListener('touchend', (event: TouchEvent) => this.handleTouch(event))
-        // this.contenaire.addEventListener('touchcancel', (event: TouchEvent) => this.handleTouch(event))
-        // document.getElementById('wheelimg').addEventListener('mousedown', function funcRef (event) { event.preventDefault(); userInput.setOptionSpace(event, funcRef, userInput)});
-        // document.getElementById('wheelimg').addEventListener('click', (event: MouseEvent) => this.testOption(event));
 
-        this.optionWheel.addEventListener('click', (event: MouseEvent) => this.testOption(event));
-        this.optionWheel.addEventListener('touchstart', (event: TouchEvent) => this.testOption(event));
-
-        // this.contenaire.addEventListener('click', (event: MouseEvent) => this.testOption(event));
+        this.optionWheel.addEventListener('click', (event: MouseEvent) => {console.log('optionWheel: ', event); this.optionWheelClicked(event)});
+        // this.optionWheel.addEventListener('touchstart', (event: TouchEvent) => this.optionWheelClicked(event));
 
         window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
     }
 
-    testOption(event: any) { // cette solution fonctionne, le comportement est tres bizar, lorsque je modifie les attribus de mon svg ça position dans le dom change
-        // sinon je peu modifier svg des ça creation pour qu'il s'affiche au bon endroit puis faire mes trucs normalement
-        // ça ne fonctionne pas de la même maniere dans chrome et firefox et sur edge rien ne fonctionne brave fonctionne comme chrome
-        // console.log('clicked on optionWheel', event);
+    optionWheelClicked(event: any) {
+        console.log('optionWheelClicked', event)
         this.openOptionBox = this.openOptionBox ? false : true;
-        // console.log('bingo', 'openOptionBox: ', this.openOptionBox)
         if(this.openOptionBox) {
             this.userPreference.setOptionSpace(this);
         } else {
             this.userPreference.closeOptionSpace();
         }
-        // if(true) {
-        //     console.log('bingo');
-            // this.optionWheel.setAttribute('visibility', 'hidden')
-            // let i = 0
-            // let t = window.setInterval( () => {
-            //     console.log(this, this.optionWheel);
-            //     i += 36
-            //     this.optionWheel.setAttributeNS(null, 'transform', `rotate(${i})`);
-            // }, 20)
-            // // clearInterval(t);
-            // window.setTimeout( () => {
-            //     // i++
-            //     console.log(t);
-            //     clearInterval(t);
-            //     // console.log(this, i);
-            //     // i++
-            //     // console.log(i)
-            // }, 200);
-        // }
-
-        // function rotate() {
-        // }
     }
 
     createCanvas() {
@@ -235,12 +200,7 @@ class main {
             this[allCanvasId[i]] = allCanvas[i];
             this.contenaire.appendChild(allCanvas[i])
         }
-        /*************test roue d'option en svg***************/
-        // maintenant j'ai un problem avec l'event listener plus haut
-        // >> le problèmes et que mes element canvas couvre mon image svg
-        // >> solution faire une marge qui contient la rouge d'option comme dans l'ancienne version?
-        // >> ajouter un event click sur this.container qui ne se declenche que si sur l'espace de la roue d'option
-        // >> google le problem
+
         let svg: SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svg.setAttributeNS(null, 'width', '24');
         svg.setAttributeNS(null, 'height', '24');
@@ -252,19 +212,15 @@ class main {
         svg.setAttributeNS(null, 'viewBox', '0 0 24 24');
         svg.setAttributeNS(null, 'z-index', '10');
         // svg.style.zIndex = '10';
-        let newPath: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg',"path");
-        newPath.setAttributeNS(null, 'd', 'M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.66-.07-.99l.01.02 2.44-1.92-2.43-4.22-2.87 1.16.01.01c-.52-.4-1.09-.74-1.71-1h.01L14.44 2H9.57l-.44 3.07h.01c-.62.26-1.19.6-1.71 1l.01-.01-2.88-1.17-2.44 4.22 2.44 1.92.01-.02c-.04.33-.07.65-.07.99 0 .34.03.68.08 1.01l-.01-.02-2.1 1.65-.33.26 2.43 4.2 2.88-1.15-.02-.04c.53.41 1.1.75 1.73 1.01h-.03L9.58 22h4.85s.03-.18.06-.42l.38-2.65h-.01c.62-.26 1.2-.6 1.73-1.01l-.02.04 2.88 1.15 2.43-4.2s-.14-.12-.33-.26l-2.11-1.66zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z');
-        svg.appendChild(newPath);
+        let svgWheel: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg',"path");
+        svgWheel.setAttributeNS(null, 'd', 'M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.66-.07-.99l.01.02 2.44-1.92-2.43-4.22-2.87 1.16.01.01c-.52-.4-1.09-.74-1.71-1h.01L14.44 2H9.57l-.44 3.07h.01c-.62.26-1.19.6-1.71 1l.01-.01-2.88-1.17-2.44 4.22 2.44 1.92.01-.02c-.04.33-.07.65-.07.99 0 .34.03.68.08 1.01l-.01-.02-2.1 1.65-.33.26 2.43 4.2 2.88-1.15-.02-.04c.53.41 1.1.75 1.73 1.01h-.03L9.58 22h4.85s.03-.18.06-.42l.38-2.65h-.01c.62-.26 1.2-.6 1.73-1.01l-.02.04 2.88 1.15 2.43-4.2s-.14-.12-.33-.26l-2.11-1.66zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z');
+        svg.appendChild(svgWheel);
         this.optionWheel = svg;
         // this.contenaire.appendChild(svg);
-        // document.getElementById('supercontenaire').appendChild(svg);
         this.contenaire.appendChild(svg);
         this.optionWheel.setAttributeNS(null, 'transform', `rotate(0)`);
         // this.optionWheel.style.marginLeft = `${this.contenaire.clientWidth-24}px`;
         // document.getElementById('optionWheel').appendChild(svg);
-
-
-        /***************************************/
 
         this.upperText_ctx = this.upperText_canvas.getContext('2d');
         this.displayPrices_ctx = this.displayPrices_canvas.getContext('2d');
@@ -299,16 +255,11 @@ class main {
     }
 
     setSpace() {
-        // a terme creer les 4 element canvas ici et les inserer dans contenaire >> done 
-        // faire pareil pour l'image >> done
-        // chercher l'element canvas et son element parent;
-        // mettre le width et height de canvas = width et height de parent element
-        // this.contenaireRect = document.getElementById("supercontenaire").getBoundingClientRect(); // useless? >> non je ne pense pas
-
         let parent: HTMLElement = document.getElementById('supercontenaire');
         this.contenaireRect = parent.getBoundingClientRect();
-        // this.baseInterval = parent.clientWidth/this.dataLength;
         this.height = parent.clientHeight;
+        this.width = parent.clientWidth;
+
         this.Y_upperTextSpace = this.height*upperTextSpace;
         this.Y_mainSpace = this.height*mainSpace;
         this.Y_volumeSpace = this.height*volumeSpace;
@@ -319,8 +270,6 @@ class main {
 
         let optionWheel: HTMLElement = document.getElementById('wheelimg');
         optionWheel.style.marginLeft = `${parent.clientWidth-24}px`;
-        // optionWheel.addEventListener('click', () => /*{ event.preventDefault();*/ console.log('clicked on optionWheel')/*}*/);
-        // this.nextAbscisse = this.baseInterval;
 
         this.upperText_canvas.width = parent.clientWidth;
         this.upperText_canvas.height = parent.clientHeight;
@@ -330,9 +279,6 @@ class main {
         this.main_canvas.height = parent.clientHeight;
         this.cursor_canvas.width = parent.clientWidth;
         this.cursor_canvas.height = parent.clientHeight;
-        // this.width = parent.clientWidth;
-        this.width = this.main_canvas.width;
-        // this.height = parent.clientHeight;
     }
 
     displayChart(data: any) {
@@ -409,7 +355,7 @@ class main {
             nextAbscisse += currentInterval;
             currentAbscisse += currentInterval;
         }
-        
+
         const drawOrder = new Array(Object.keys(this.renderObj).length-1);
 
         for(let prop in this.renderObj) {
@@ -462,13 +408,12 @@ class main {
     }
 
     displayPrices(verticalScales: VerticalScales) { // dispose les prix 
-        // pour que les prix s'ajuste je vais devoir modifier les input de la fonction qui donne l'echelle verticale, car start et stop sont assigné au valeur par default de data >> done
-        let priceInterval: number, y: number; //, newText, newLine;
+        let priceInterval: number, y: number;
         const yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         priceInterval = verticalScales.lowestPrice;
         this.displayPrices_ctx.clearRect(0, 0, this.width, this.height);
         for(let i=0;i<5;i++) {
-            priceInterval += Math.round(yRange/6); // simplement faire ça?
+            priceInterval += Math.round(yRange/6);
             priceInterval = this.preciseRound(priceInterval, 2);
             y = this.Y_upperTextSpace + this.Y_mainSpace*(1-((priceInterval-verticalScales.lowestPrice)/(yRange))); // encore p[1]-p[0] aka priceRange ça je le calcul aussi dans vertical et juste au dessus
             // crée le text
@@ -480,7 +425,6 @@ class main {
             this.displayPrices_ctx.lineTo(this.width, y-3.5);
             this.displayPrices_ctx.stroke();
             this.displayPrices_ctx.fillStyle = 'rgb(0, 0, 0)';
-            // this.displayPrices_ctx.fillRect(this.width*0.045, this.height/2, 50, 50); // for test purpose
             this.displayPrices_ctx.stroke()
         }
     }
@@ -492,6 +436,10 @@ class main {
     }
 
     handleTouch(event: TouchEvent) {
+        let touchedElem: any = event.target;
+        if(touchedElem.id === 'wheelimg' || touchedElem.parentNode.id === 'wheelimg' || this.openOptionBox) {
+            return;
+        }
         event.preventDefault();
         const touchNumber: number = event.touches.length;
         if (touchNumber === 1) {
@@ -533,14 +481,13 @@ class main {
     }
 
     moveGraph(x: number, y: number) {
-        let contenaireRect: any = document.getElementById("contenaire").getBoundingClientRect();
+        let contenaireRect: any = document.getElementById("supercontenaire").getBoundingClientRect();
         // let ajustedHeight: number = this.height*upperTextSpace;
         let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
         let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
         let dataPosition: number = Math.round(((x-this.contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
         this.currentDataPosition = dataPosition
         let xCoordonnée: number = interval*dataPosition-this.pan;
-        // let yCoordonnée: number = y - this.contenaireRect.top;
         let yCoordonnée: number = y - contenaireRect.top;
 
         // for debugging purpose
@@ -551,7 +498,6 @@ class main {
 
         this.cursor_ctx.clearRect(0, 0, this.width, this.height);
         if(xCoordonnée > 0 && y > this.Y_upperTextSpace) {
-            // console.log(this.height*0.03, y)
             document.body.style.cursor = 'crosshair';
             this.cursor_ctx.fillStyle = 'rgb(255, 0, 0)';
             this.cursor_ctx.fillRect(xCoordonnée + this.X_priceSpace + chartWidthOffset, this.Y_upperTextSpace, 1, this.height); //ligne verticale
@@ -567,7 +513,6 @@ class main {
         this.upperText_ctx.clearRect(0, 0, this.width, this.height);
         this.upperText_ctx.font = "13px sans serif";
         this.upperText_ctx.fillText(`${this.translation['date'][this.lang]}: ${currentData.date}, ${this.translation['average'][this.lang]}: ${currentData.average}, ${this.translation['highest'][this.lang]}: ${currentData.highest}, ${this.translation['lowest'][this.lang]}: ${currentData.lowest}, ${this.translation['volume'][this.lang]}: ${currentData.volume}, ${this.translation['order_count'][this.lang]}: ${currentData.order_count}`,5, 12, this.width - 30); // -30 pour eviter que ça rogne sur la roue des options
-        // this.upperText_ctx.fillText(`date: ${currentData.date}, average: ${currentData.average}, highest: ${currentData.highest}, lowest: ${currentData.lowest}, volume: ${currentData.volume}, order count: ${currentData.order_count}`, 5, 12, this.width);
     }
 
     wheelHandler(event: WheelEvent) {
