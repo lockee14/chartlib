@@ -44,9 +44,8 @@ export class UserPreferences {
             optionCategorie.addEventListener('change', (event) => this.setPreference(event, main));
             document.getElementById('optionSpace').appendChild(optionCategorie);
         }
-        let resetButton = this.creatElement('div', {'id': 'resetButton'}, {'z-index': 2, 'bottom': '3%', 'position': 'inherit', 'right': '42%'})
-        resetButton.appendChild(this.creatElement('button', {'type': 'reset'}, {'z-index': 2, 'bottom': '3%', 'position': 'inherit', 'right': '50%', 'width': '100px'}, this.translation['reset_option'][this.lang]))
-        optionSpace.insertAdjacentElement('beforeend', resetButton);
+        let resetButton = this.creatElement('button', {'type': 'reset', 'id':'resetButton'}, {'z-index': 2, 'bottom': '3%', 'position': 'inherit', 'right': '42%', 'width': '100px'}, this.translation['reset_option'][this.lang]);
+        optionSpace.appendChild(resetButton);
         resetButton.addEventListener('click', () => this.resetPreference(main));
     }
     

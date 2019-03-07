@@ -4,25 +4,13 @@
 //          -en entré une variable fourni par mon apli ex: "en-us"
 //          -crée un objet contenant les traduction
 //          -appeler les element de mon object en fonction de [context][lang]
-//      -zoom et deplacement pour modible, voir le touch event >> done?
-//      -comment implementer les options? >> done
-//      -comment externaliser la creation des chart/indicateur? >> done
-//      -utiliser un svg material design pour la roue d'option plutot que l'image >> done
-//      -faire en sorte que les options soit compatible avec mobile >> done
-//      - add a 'click outside of the options box to close it'
+//      -lors d'un click sur wheelimg >> rotation à 360 degres
 
+//  amelioration:
+//      -changer l'endroit ou je change la couleur de background voir ligne 284 de index.ts
 // Bug:
 //      -affichage du volume, je pense qu'il y a un probleme >> à verifier
 //      -reflechir à comment bien disposer le contenue des options >> done? à tester
-//          >> les options s'affichent tres mal sous mobile
-//      -l'optionBox ne fonctionne pas sous mobile, et je ne sais vraiment pas pourquoi..... >> done
-//          >> ajouter des event 'touch'?, hmmm non si je veux que ça fonctionne il faut ajouter les "input" autrement qu'avec elem.innerHTML = input
-//          >> tester appendChild(inputElem) sur desktop et ça a fonctionné, voir sur mobile
-//          >> oui mais ça ne fonctionne toujours pas dans l'encar d'option, peu etre à cause de l'event listener de handleCursor
-//          >> wép prevent default à l'air de faire chier... 
-//          >> voir event bubbling / event capturing
-//          >> probleme corriger, je crois
-//      -les bar rouge ne s'affichent pas sous mobile >> problemes resolu, mauvais cookie, mettre un truc pour verifier que le cookie soit correct?
 
 //function that detect if the device is mobile or not
 // function isMobileDevice() {
@@ -84,7 +72,7 @@ interface VerticalScales {
     lowestVolume: number;
     highestVolume: number;
 }
-// declarer ces constantes plus pres de lieu d'utilisation?
+
 const upperTextSpace: number = 0.03;
 const displayPriceSpace: number = 0.045;
 const mainSpace: number = 0.85;
@@ -102,7 +90,6 @@ class main {
 
     width: number;
     height: number;
-    // attention verifier de quoi on parle mettre un X ou Y devant pour abs/ord à verifier
 
     Y_upperTextSpace: number;
     Y_mainSpace: number;
@@ -170,20 +157,22 @@ class main {
         this.contenaire.addEventListener('mouseup', () => this.click = true ?  false : true);
         this.contenaire.addEventListener('mouseleave',() => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
 
-        this.optionWheel.addEventListener('click', (event: MouseEvent) => {console.log('optionWheel: ', event); this.optionWheelClicked(event)});
-        // this.optionWheel.addEventListener('touchstart', (event: TouchEvent) => this.optionWheelClicked(event));
+        this.contenaire.addEventListener('click', (event: MouseEvent) => {this.optionWheelClicked(event)});
 
-        window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)})
+        window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)});
     }
 
     optionWheelClicked(event: any) {
-        console.log('optionWheelClicked', event)
-        this.openOptionBox = this.openOptionBox ? false : true;
-        if(this.openOptionBox) {
+        if(!this.openOptionBox && this.optionWheel.contains(event.target)) {
+            this.openOptionBox = this.openOptionBox ? false : true;
             this.userPreference.setOptionSpace(this);
-        } else {
-            this.userPreference.closeOptionSpace();
-        }
+        } else if(this.openOptionBox) {
+            let optionBox = document.getElementById('optionSpace');
+            if(!optionBox.contains(event.target) && this.openOptionBox && event.target.id !== 'resetButton') {
+                this.openOptionBox = this.openOptionBox ? false : true;
+                this.userPreference.closeOptionSpace();
+            }
+        }     
     }
 
     createCanvas() {
@@ -206,17 +195,13 @@ class main {
         svg.setAttributeNS(null, 'height', '24');
         svg.setAttributeNS(null, 'id', 'wheelimg');
         svg.setAttributeNS(null, 'position', 'absolute');
-        // svg.setAttributeNS(null, 'top', '1%');
-        // svg.setAttributeNS(null, 'right', '1%');
-
         svg.setAttributeNS(null, 'viewBox', '0 0 24 24');
         svg.setAttributeNS(null, 'z-index', '10');
-        // svg.style.zIndex = '10';
+
         let svgWheel: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg',"path");
         svgWheel.setAttributeNS(null, 'd', 'M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.66-.07-.99l.01.02 2.44-1.92-2.43-4.22-2.87 1.16.01.01c-.52-.4-1.09-.74-1.71-1h.01L14.44 2H9.57l-.44 3.07h.01c-.62.26-1.19.6-1.71 1l.01-.01-2.88-1.17-2.44 4.22 2.44 1.92.01-.02c-.04.33-.07.65-.07.99 0 .34.03.68.08 1.01l-.01-.02-2.1 1.65-.33.26 2.43 4.2 2.88-1.15-.02-.04c.53.41 1.1.75 1.73 1.01h-.03L9.58 22h4.85s.03-.18.06-.42l.38-2.65h-.01c.62-.26 1.2-.6 1.73-1.01l-.02.04 2.88 1.15 2.43-4.2s-.14-.12-.33-.26l-2.11-1.66zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z');
         svg.appendChild(svgWheel);
         this.optionWheel = svg;
-        // this.contenaire.appendChild(svg);
         this.contenaire.appendChild(svg);
         this.optionWheel.setAttributeNS(null, 'transform', `rotate(0)`);
         // this.optionWheel.style.marginLeft = `${this.contenaire.clientWidth-24}px`;
@@ -265,7 +250,7 @@ class main {
         this.Y_volumeSpace = this.height*volumeSpace;
         this.X_priceSpace = parent.clientWidth * displayPriceSpace;
         this.X_chartSpace = parent.clientWidth - parent.clientWidth * displayPriceSpace;
-        this.baseInterval = (parent.clientWidth - this.X_priceSpace)/this.dataLength; // with displaypricemarge
+        this.baseInterval = (parent.clientWidth - this.X_priceSpace)/this.dataLength;
         this.dataGap = this.baseInterval - (this.baseInterval/5);
 
         let optionWheel: HTMLElement = document.getElementById('wheelimg');
@@ -302,9 +287,9 @@ class main {
         let currentInterval: number = this.baseInterval * this.zoom;
         let nextAbscisse: number = currentAbscisse + currentInterval;
 
-        let start: number = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0; // pas encore de pan donc
+        let start: number = this.pan > 0 ? Math.floor(this.pan/currentInterval) : 0;
         start = start > this.dataLength-1 ? this.dataLength-1 : start;
-        let stop: number = Math.floor(this.width/currentInterval + this.pan/currentInterval); // math.floor? ici ajouté pan >> done
+        let stop: number = Math.floor(this.width/currentInterval + this.pan/currentInterval);
         stop = stop > this.dataLength-1 ? this.dataLength-1 : stop;
 
         let verticalScales: VerticalScales = this.setVerticalScale(data, start, stop);
@@ -448,7 +433,6 @@ class main {
         } else if (touchNumber === 2 && event.type === 'touchstart') {
             const x0: number = event.touches[0].clientX;
             const x1: number = event.touches[1].clientX;
-            // const contenaireRect: any = document.getElementById("contenaire").getBoundingClientRect();
             
             let delta1: number = event.touches[0].clientX / event.touches[0].clientY;
             let delta2: number = event.touches[1].clientX / event.touches[1].clientY;
@@ -482,7 +466,6 @@ class main {
 
     moveGraph(x: number, y: number) {
         let contenaireRect: any = document.getElementById("supercontenaire").getBoundingClientRect();
-        // let ajustedHeight: number = this.height*upperTextSpace;
         let interval: number = this.baseInterval*this.zoom; // calcule l'interval courant entre chaque data
         let chartWidthOffset: number = (this.dataGap*this.zoom)/2;
         let dataPosition: number = Math.round(((x-this.contenaireRect.left - this.X_priceSpace - chartWidthOffset)/interval) + this.pan/interval); // calcule la position courante au sein de data        
