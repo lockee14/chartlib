@@ -50,6 +50,7 @@ export class ShapeCreator {
     }
 
     creatMovAv5d(main: any, prop: string, x1: number, x2: number, movAv5d: number, verticalScales: any, i: number, colour: string) {
+        // if(i === main.dataLength-1) {return}        
         let dataGap: number = main.dataGap*main.zoom;
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number = 0;
@@ -57,10 +58,12 @@ export class ShapeCreator {
         if (i<=3) {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d/(i+1)) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (((movAv5d + main.data[i + 1].average)/(i+2)) - verticalScales.lowestPrice) / yRange));
-        } else if (i < main.dataLength-1) {
+        // } else if (i < main.dataLength-1) {
+        } else {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d/5) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d + main.data[i + 1].average - main.data[i - 4].average) / 5 ) - verticalScales.lowestPrice) / yRange);
         }
+
         main.renderObj['movingAverage5d'].getContext('2d').lineWidth = 2;
         main.renderObj['movingAverage5d'].getContext('2d').strokeStyle = colour;
         main.renderObj['movingAverage5d'].getContext('2d').moveTo(x1+dataGap/2, y1);
@@ -68,6 +71,7 @@ export class ShapeCreator {
     }
     
     creatMovAv20d(main: any, prop: string, x1: number, x2: number, movAv20d: number, verticalScales: any, i: number, colour: string) {
+        // if(i === main.dataLength-1) {return}
         let dataGap: number = main.dataGap*main.zoom;
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number = 0;
@@ -75,10 +79,12 @@ export class ShapeCreator {
         if (i<=18) {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d/(i+1)) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (((movAv20d + main.data[i + 1].average)/(i+2)) - verticalScales.lowestPrice) / yRange));
-        } else if (i < main.dataLength-1) {
+        // } else if (i < main.dataLength-1) {
+        } else {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d/20) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d + main.data[i + 1].average - main.data[i - 19].average) / 20 ) - verticalScales.lowestPrice) / yRange);
         }
+
         main.renderObj['movingAverage20d'].getContext('2d').lineWidth = 2;
         main.renderObj['movingAverage20d'].getContext('2d').strokeStyle = colour;
         main.renderObj['movingAverage20d'].getContext('2d').moveTo(x1+dataGap/2, y1);
@@ -86,6 +92,8 @@ export class ShapeCreator {
     }
 
     creatDonchian(main: any, prop: string, x1: number, x2: number, donchian: any, verticalScales: any, i: number, colour: string) {
+        // if(i === main.dataLength-1) {return}
+        // console.log(i)
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number, y2: number ,y3: number ,y4: number ,nextLow: number ,nextHigh: number ,temp: number[];
         main.renderObj['donchianChannel'].getContext('2d').globalAlpha = 0.3;
@@ -104,7 +112,8 @@ export class ShapeCreator {
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x1, y2);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y4);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y3);
-        } else if (i < main.dataLength-1) {
+        // } else if (i < main.dataLength-1) {
+        } else {        
             if ((i - donchian.lastLowIndex) > 4) { 
                   temp = findPic('low', main.data, i); 
                   donchian.lastLow = temp[0]; 
@@ -122,7 +131,6 @@ export class ShapeCreator {
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (donchian.lastHigh - verticalScales.lowestPrice) / yRange));
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
-
             // main.renderObj['donchianChannel'].getContext('2d').globalCompositeOperation = 'source-out';
             main.renderObj['donchianChannel'].getContext('2d').fillStyle = colour;
             main.renderObj['donchianChannel'].getContext('2d').moveTo(x1, y1);
@@ -131,9 +139,7 @@ export class ShapeCreator {
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y3);
         }
       
-        function findPic(type: string, data: any, i: number) { 
-            // essaie d'optimiser cette fonctione, mes les 5 dernier valeur dans un array, tri le, puis binary search or hearsort
-            // ensuite regarder les performance et voir lequel des 2 algo est le plus rapide
+        function findPic(type: string, data: any, i: number) {
             let temp: number[] = [0,0]; // [value, index]
             if (type === 'low') {
                 temp[0] = data[i-4].lowest;

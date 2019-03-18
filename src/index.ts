@@ -9,6 +9,7 @@
 //  amelioration:
 //      -changer l'endroit ou je change la couleur de background voir ligne 284 de index.ts
 // Bug:
+//      -bug lors du test dans mon site, movAv5d et movAv20d affichient un trait supplementaire à la fin
 //      -affichage du volume, je pense qu'il y a un probleme >> à verifier
 //      -reflechir à comment bien disposer le contenue des options >> done? à tester
 
@@ -21,28 +22,28 @@
 // alert(test);
 /////////////////////////////////////////////
 /////////////// for developement only //////////////////////////////////////////////////
-window.onload = function() { // ici plutot faire click sur submit, recup les req et les mettre dans l'url de recherche des data peut etre dois-je setspace() en tout 1er?
-  let obj = {};
-//   document.body.style.backgroundColor = "#AA0000";
-  let xmlhttp = new XMLHttpRequest();
-  //let url = "./mock_data.json";
-  let url = "./plex_data.json";
-  xmlhttp.open("GET", url , true);
-  xmlhttp.setRequestHeader( "Accept", "application/json; charset=utf-8" );
-  xmlhttp.onreadystatechange = function () {
-    let DONE = this.DONE || 4;
-    if (this.readyState === DONE) {
-        obj = JSON.parse(xmlhttp.response);
-        // initialisation(obj);
-        let lang = 'en-us'
-        // let lang = 'ja'
+// window.onload = function() { // ici plutot faire click sur submit, recup les req et les mettre dans l'url de recherche des data peut etre dois-je setspace() en tout 1er?
+//   let obj = {};
+// //   document.body.style.backgroundColor = "#AA0000";
+//   let xmlhttp = new XMLHttpRequest();
+//   //let url = "./mock_data.json";
+//   let url = "./plex_data.json";
+//   xmlhttp.open("GET", url , true);
+//   xmlhttp.setRequestHeader( "Accept", "application/json; charset=utf-8" );
+//   xmlhttp.onreadystatechange = function () {
+//     let DONE = this.DONE || 4;
+//     if (this.readyState === DONE) {
+//         obj = JSON.parse(xmlhttp.response);
+//         // initialisation(obj);
+//         let lang = 'en-us'
+//         // let lang = 'ja'
 
-        new main(new ShapeCreator, new UserPreferences).init(obj, lang);
-      }
-  };
-  xmlhttp.send(null);
+//         new main(new ShapeCreator, new UserPreferences).init(obj, lang);
+//       }
+//   };
+//   xmlhttp.send(null);
 
-};
+// };
 /////////////////////////////end of the dev env part///////////////////////////////////////
 declare global {
     interface Window { chartlib_canvas: any; }
@@ -157,9 +158,15 @@ class main {
         this.contenaire.addEventListener('mouseup', () => this.click = true ?  false : true);
         this.contenaire.addEventListener('mouseleave',() => {document.body.style.cursor = 'default';this.click === true ? this.click = false : null;});
 
-        this.contenaire.addEventListener('click', (event: MouseEvent) => {this.optionWheelClicked(event)});
-
-        window.addEventListener('resize', (event:UIEvent) => {this.setSpace(); this.displayChart(this.data)});
+        this.contenaire.addEventListener('click', (event: MouseEvent) => this.optionWheelClicked(event));
+        window.addEventListener('resize', function handleResize() {
+            if(document.getElementById('supercontenaire') === null) {
+                window.removeEventListener('resize', handleResize);
+                return;
+            }
+            this.setSpace();
+            this.displayChart(this.data);
+        }.bind(this));
     }
 
     optionWheelClicked(event: any) {
@@ -331,7 +338,7 @@ class main {
 
                 for(let prop in this.options.indicator) {
                     let colour: string = this.options.indicator[prop].colour;
-                    if(this.options.indicator[prop].hasOwnProperty('func') && this.options.indicator[prop]['exist']) {
+                    if(this.options.indicator[prop].hasOwnProperty('func') && this.options.indicator[prop]['exist'] && i < this.dataLength-1) {
                         let func = this.options.indicator[prop].func;
                         this.shapeCreator[func](this, prop, x, x2, indicatorParam[prop], verticalScales, i, colour);
                     }
