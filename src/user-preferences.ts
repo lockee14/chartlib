@@ -131,7 +131,6 @@ export class UserPreferences {
             cookie.userChartPreference[path] = value;
         }
         document.cookie = `userChartPreference=${JSON.stringify(cookie.userChartPreference)};max-age=31536000;path=/`;
-        // ;domain=domain ;domain=eve-hub.com pour set le domain name
     }
 
     parseCookie() {
@@ -141,9 +140,7 @@ export class UserPreferences {
         const cookieArrayLength: number = cookieArray.length;
         for (let i = 0; i < cookieArrayLength; i++) {
           const cookie: string[] = cookieArray[i].split('=');
-        //   cookie[0] === 'userChartPreference' ? cookieObj[cookie[0]] = JSON.parse(cookie[1]) : null;
           if (cookie[0] === 'userChartPreference') cookieObj[cookie[0]] = JSON.parse(cookie[1]);
-          // cookie[0] === "" && cookie[1] === undefined ? null : cookieObj[cookie[0]] = JSON.parse(cookie[1]);
         }
         return cookieObj;
     }

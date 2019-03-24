@@ -11,39 +11,31 @@
 // Bug:
 //      -bug lors du test dans mon site, movAv5d et movAv20d affichient un trait supplementaire à la fin
 //      -affichage du volume, je pense qu'il y a un probleme >> à verifier
-//      -reflechir à comment bien disposer le contenue des options >> done? à tester
 
-//function that detect if the device is mobile or not
-// function isMobileDevice() {
-//     return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
-// };
-
-// let test = isMobileDevice();
-// alert(test);
 /////////////////////////////////////////////
 /////////////// for developement only //////////////////////////////////////////////////
-// window.onload = function() { // ici plutot faire click sur submit, recup les req et les mettre dans l'url de recherche des data peut etre dois-je setspace() en tout 1er?
-//   let obj = {};
-// //   document.body.style.backgroundColor = "#AA0000";
-//   let xmlhttp = new XMLHttpRequest();
-//   //let url = "./mock_data.json";
-//   let url = "./plex_data.json";
-//   xmlhttp.open("GET", url , true);
-//   xmlhttp.setRequestHeader( "Accept", "application/json; charset=utf-8" );
-//   xmlhttp.onreadystatechange = function () {
-//     let DONE = this.DONE || 4;
-//     if (this.readyState === DONE) {
-//         obj = JSON.parse(xmlhttp.response);
-//         // initialisation(obj);
-//         let lang = 'en-us'
-//         // let lang = 'ja'
+window.onload = function() { // ici plutot faire click sur submit, recup les req et les mettre dans l'url de recherche des data peut etre dois-je setspace() en tout 1er?
+  let obj = {};
+//   document.body.style.backgroundColor = "#AA0000";
+  let xmlhttp = new XMLHttpRequest();
+  //let url = "./mock_data.json";
+  let url = "./plex_data.json";
+  xmlhttp.open("GET", url , true);
+  xmlhttp.setRequestHeader( "Accept", "application/json; charset=utf-8" );
+  xmlhttp.onreadystatechange = function () {
+    let DONE = this.DONE || 4;
+    if (this.readyState === DONE) {
+        obj = JSON.parse(xmlhttp.response);
+        // initialisation(obj);
+        let lang = 'en-us'
+        // let lang = 'ja'
 
-//         new main(new ShapeCreator, new UserPreferences).init(obj, lang);
-//       }
-//   };
-//   xmlhttp.send(null);
+        new main(new ShapeCreator, new UserPreferences).init(obj, lang);
+      }
+  };
+  xmlhttp.send(null);
 
-// };
+};
 /////////////////////////////end of the dev env part///////////////////////////////////////
 declare global {
     interface Window { chartlib_canvas: any; }
@@ -53,7 +45,7 @@ function initialisation(data: Data, lang: string) {
 }
 window.chartlib_canvas = initialisation;
 
-import { ShapeCreator } from './shape-creator'; // unfortunatly externalizing this is very slow with firefox and edge
+import { ShapeCreator } from './shape-creator';
 import { UserPreferences } from './user-preferences';
 import { TRANSLATION } from './translation';
 import { DEFAULTOPTIONS } from './default-options';
@@ -84,7 +76,6 @@ class main {
     isMobile: boolean = false;
     openOptionBox: boolean = false;
     cursorDebug: HTMLElement;
-    cookieObj: any; // useless
     data: ReadonlyArray<Data>;
     dataLength: number;
     lang: string;
@@ -211,8 +202,6 @@ class main {
         this.optionWheel = svg;
         this.contenaire.appendChild(svg);
         this.optionWheel.setAttributeNS(null, 'transform', `rotate(0)`);
-        // this.optionWheel.style.marginLeft = `${this.contenaire.clientWidth-24}px`;
-        // document.getElementById('optionWheel').appendChild(svg);
 
         this.upperText_ctx = this.upperText_canvas.getContext('2d');
         this.displayPrices_ctx = this.displayPrices_canvas.getContext('2d');
@@ -288,7 +277,7 @@ class main {
             lastHigh: data[0].highest,
             lastHighIndex: 0
         }
-        this.shapeCreator.changeBackground(this.options.chart.background.colour); // pourquoi ici? ne l'appeler qu'apres l'init ou si changement
+        this.shapeCreator.changeBackground(this.options.chart.background.colour); // I should put it somewhere else, onChange or/on init
 
         let currentAbscisse: number = this.X_priceSpace;
         let currentInterval: number = this.baseInterval * this.zoom;
@@ -356,8 +345,6 @@ class main {
                 this.renderObj[prop].getContext('2d').fill();
                 const order = this.options.indicator[prop].layer;
                 drawOrder[order] = this.renderObj[prop];
-                // this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
-    
             } else {
                 if (prop.substr(0,3) === 'bar') {
                     const order = this.options.chart['bar'].layer;
@@ -374,7 +361,6 @@ class main {
                 this.renderObj[prop].getContext('2d').closePath();
                 this.renderObj[prop].getContext('2d').stroke();
                 this.renderObj[prop].getContext('2d').fill();
-                // this.main_ctx.drawImage(this.renderObj[prop], 0, 0);
             }
         }
         for(let i = 0; i < drawOrder.length; i++) {
@@ -382,14 +368,14 @@ class main {
         }
     }
 
-    setVerticalScale(data: any, start: number, stop: number) { // permet de gerer l'echelle des prix (axes des ordonnée : y) ainsi que l'affichage des prix et aussi pour le volume >> à renommer setScale
+    setVerticalScale(data: any, start: number, stop: number) { // handle scale of price and volume (axes des ordonnée : y)
         let lowestPrice: number, highestPrice: number, lowestVolume: number, highestVolume: number;
         lowestPrice = data[start].lowest;
         highestPrice = data[start].highest;
         lowestVolume = data[start].volume;
         highestVolume = data[start].volume;
         while (start<stop) {
-            if ( start < 0) { continue; } // gné?
+            if ( start < 0) { continue; }
             lowestPrice > data[start].lowest ? lowestPrice = data[start].lowest : null;
             highestPrice < data[start].highest ? highestPrice = data[start].highest : null;
             lowestVolume > data[start].volume ? lowestVolume = data[start].volume : null;
@@ -407,8 +393,7 @@ class main {
         for(let i=0;i<5;i++) {
             priceInterval += Math.round(yRange/6);
             priceInterval = this.preciseRound(priceInterval, 2);
-            y = this.Y_upperTextSpace + this.Y_mainSpace*(1-((priceInterval-verticalScales.lowestPrice)/(yRange))); // encore p[1]-p[0] aka priceRange ça je le calcul aussi dans vertical et juste au dessus
-            // crée le text
+            y = this.Y_upperTextSpace + this.Y_mainSpace*(1-((priceInterval-verticalScales.lowestPrice)/(yRange)));
             this.displayPrices_ctx.fillText(priceInterval.toString(), 0, y);
             this.displayPrices_ctx.beginPath();
             this.displayPrices_ctx.strokeStyle = "rgba(0,0,0,0.4)";
@@ -506,9 +491,7 @@ class main {
     }
 
     wheelHandler(event: WheelEvent) {
-        event.preventDefault(); // sert à eviter que la page entière ne scroll
-        // this.user.cursorPosition.x = event.clientX; // utiliser ça ou plutot mettre dans mon object d'appel le numero de data dans cursor (dataPosition) et l'utiliser ici avec this.dataPosition    
-        ////////// test pour zoom centré ////////////////////
+        event.preventDefault();
         let lastInterval: number = this.zoom*this.baseInterval;
         if(event.deltaY < 0 && this.zoom < 16) { // avant 16 c'etait 32
           this.zoom = this.preciseRound((this.zoom*1.2),2);
@@ -517,10 +500,8 @@ class main {
           this.zoom = this.preciseRound((this.zoom/1.2),2);
           this.pan +=  (this.zoom*this.baseInterval - lastInterval)*this.currentDataPosition; //center the zoom on the current cursor position // est-ce une bonne idée de changer pan ici?
         }
-        /////////////////////////////////////////////////////
-        /////////test preventOutOfScreen///////////
+        
         this.preventOutOfScreen();
-        /////////test ///////////
         this.displayChart(this.data);
     }
 
@@ -531,20 +512,20 @@ class main {
           this.pan += this.offset - event.clientX;
           this.offset = event.clientX;
         }
-        ///////test preventOutOfScreen///////////////
         this.preventOutOfScreen();
-        ///////////////////////////
         this.displayChart(this.data);
       
     }
     
-    preventOutOfScreen() { // ça me les brise un peu de faire comme ça... puis-je trouver mieu?// fonctione >> plus ou moins meilleurs solution à trouver
-        // this.pan <= -(this.width/2) ? this.pan = -(this.width/2) : null;
-        this.pan = this.pan <= -(this.X_chartSpace/2) ? this.pan = -(this.X_chartSpace/2) : this.pan;
-
-        // this.pan >= this.width*this.zoom-this.width/2 ? this.pan = this.width*this.zoom-this.width/2 : null;
-        this.pan = this.pan >= this.X_chartSpace*this.zoom-this.X_chartSpace/2 ? this.pan = this.X_chartSpace*this.zoom-this.X_chartSpace/2 : this.pan;
-
+    preventOutOfScreen() {
+        if( this.pan <= -(this.X_chartSpace/2) ) {
+            this.pan = -(this.X_chartSpace/2);
+        }
+        if( this.pan >= this.X_chartSpace*this.zoom-this.X_chartSpace/2 ) {
+            this.pan = this.X_chartSpace*this.zoom-this.X_chartSpace/2;
+        }
+        // this.pan = this.pan <= -(this.X_chartSpace/2) ? this.pan = -(this.X_chartSpace/2) : this.pan;
+        // this.pan = this.pan >= this.X_chartSpace*this.zoom-this.X_chartSpace/2 ? this.pan = this.X_chartSpace*this.zoom-this.X_chartSpace/2 : this.pan;
     }
 
     preciseRound(number: number, precise: number) {
@@ -562,7 +543,7 @@ class main {
       
     }
 
-    deepCopyObject(object: any, result: any = {}) { // ça a l'air correct, à tester
+    deepCopyObject(object: any, result: any = {}) {
         for(let prop in object) {
             if(typeof object[prop] === "object") {
                 result[prop] = {};

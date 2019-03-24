@@ -36,7 +36,7 @@ export class ShapeCreator {
         main.renderObj[`${prop}`].getContext('2d').rect((x+dataGap/2)-1.25, yAv-1.25, 2.5, 2.5);
     }
 
-    creatLine(main: any, prop: string, x1:number, x2: number, verticalScales:any, i: number, colour: any) { // ha corriger zoom pour comprendre >> done, approfondir lire la doc
+    creatLine(main: any, prop: string, x1:number, x2: number, verticalScales:any, i: number, colour: any) {
         if( i < main.dataLength - 1) {
             let dataGap: number = main.dataGap*main.zoom;
             let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
@@ -50,7 +50,6 @@ export class ShapeCreator {
     }
 
     creatMovAv5d(main: any, prop: string, x1: number, x2: number, movAv5d: number, verticalScales: any, i: number, colour: string) {
-        // if(i === main.dataLength-1) {return}        
         let dataGap: number = main.dataGap*main.zoom;
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number = 0;
@@ -58,7 +57,6 @@ export class ShapeCreator {
         if (i<=3) {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d/(i+1)) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (((movAv5d + main.data[i + 1].average)/(i+2)) - verticalScales.lowestPrice) / yRange));
-        // } else if (i < main.dataLength-1) {
         } else {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d/5) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv5d + main.data[i + 1].average - main.data[i - 4].average) / 5 ) - verticalScales.lowestPrice) / yRange);
@@ -71,7 +69,6 @@ export class ShapeCreator {
     }
     
     creatMovAv20d(main: any, prop: string, x1: number, x2: number, movAv20d: number, verticalScales: any, i: number, colour: string) {
-        // if(i === main.dataLength-1) {return}
         let dataGap: number = main.dataGap*main.zoom;
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number = 0;
@@ -79,7 +76,6 @@ export class ShapeCreator {
         if (i<=18) {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d/(i+1)) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (((movAv20d + main.data[i + 1].average)/(i+2)) - verticalScales.lowestPrice) / yRange));
-        // } else if (i < main.dataLength-1) {
         } else {
             y1 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d/20) - verticalScales.lowestPrice) / yRange));
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( ((movAv20d + main.data[i + 1].average - main.data[i - 19].average) / 20 ) - verticalScales.lowestPrice) / yRange);
@@ -92,8 +88,6 @@ export class ShapeCreator {
     }
 
     creatDonchian(main: any, prop: string, x1: number, x2: number, donchian: any, verticalScales: any, i: number, colour: string) {
-        // if(i === main.dataLength-1) {return}
-        // console.log(i)
         let yRange: number = verticalScales.highestPrice - verticalScales.lowestPrice;
         let y1: number, y2: number ,y3: number ,y4: number ,nextLow: number ,nextHigh: number ,temp: number[];
         main.renderObj['donchianChannel'].getContext('2d').globalAlpha = 0.3;
@@ -106,13 +100,11 @@ export class ShapeCreator {
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
 
-            // main.renderObj['donchianChannel'].getContext('2d').globalCompositeOperation = 'source-out';
             main.renderObj['donchianChannel'].getContext('2d').fillStyle = colour;
             main.renderObj['donchianChannel'].getContext('2d').moveTo(x1, y1);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x1, y2);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y4);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x2, y3);
-        // } else if (i < main.dataLength-1) {
         } else {        
             if ((i - donchian.lastLowIndex) > 4) { 
                   temp = findPic('low', main.data, i); 
@@ -131,7 +123,6 @@ export class ShapeCreator {
             y2 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (donchian.lastHigh - verticalScales.lowestPrice) / yRange));
             y3 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextLow - verticalScales.lowestPrice) / yRange));
             y4 = main.Y_upperTextSpace + main.Y_mainSpace * ( 1 - ( (nextHigh - verticalScales.lowestPrice) / yRange));
-            // main.renderObj['donchianChannel'].getContext('2d').globalCompositeOperation = 'source-out';
             main.renderObj['donchianChannel'].getContext('2d').fillStyle = colour;
             main.renderObj['donchianChannel'].getContext('2d').moveTo(x1, y1);
             main.renderObj['donchianChannel'].getContext('2d').lineTo(x1, y2);
