@@ -82,7 +82,7 @@ export class UserPreferences {
         return content;
     }
 
-    creatElement(type: string, attribute?: any, style?: any, text?: string) { // peu etre geré les erreur notament celle qui peuvent survenir en cas de mauvais type
+    creatElement(type: string, attribute?: any, style?: any, text?: string) {
         let newElement = document.createElement(type);
         for(let prop in attribute) {
           newElement.setAttribute(prop,attribute[prop]);
