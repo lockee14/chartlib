@@ -1,22 +1,6 @@
-
-// chose à ajouté:
-//      -performance: lors du deplacement du curseur, plutot que de tout redessiner, enregistrer l'etat precedent de mon canva et le reservir avec le mouvement du cursuer (sauf si deplacement dans les chart evidemment)
-//          -en entré une variable fourni par mon apli ex: "en-us"
-//          -crée un objet contenant les traduction
-//          -appeler les element de mon object en fonction de [context][lang]
-//      -lors d'un click sur wheelimg >> rotation à 360 degres
-
-//  amelioration:
-//      -changer l'endroit ou je change la couleur de background voir ligne 284 de index.ts
-// Bug:
-//      -bug lors du test dans mon site, movAv5d et movAv20d affichient un trait supplementaire à la fin
-//      -affichage du volume, je pense qu'il y a un probleme >> à verifier
-
-/////////////////////////////////////////////
-/////////////// for developement only //////////////////////////////////////////////////
-window.onload = function() { // ici plutot faire click sur submit, recup les req et les mettre dans l'url de recherche des data peut etre dois-je setspace() en tout 1er?
+/////////////// for dev only //////////////////////////////////////////////////
+window.onload = function() {
   let obj = {};
-//   document.body.style.backgroundColor = "#AA0000";
   let xmlhttp = new XMLHttpRequest();
   //let url = "./mock_data.json";
   let url = "./plex_data.json";
